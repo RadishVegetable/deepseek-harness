@@ -144,7 +144,7 @@ function TurnStatus({ startTime, t }: {
  * ordered business Node crosses the keyed renderer seat.
  */
 export function ChatView({
-  useSession, useSessions, useStore, renderSlot, sessionId, openFile, loadOlder, loadImage, inspectCall, chatScroll, forkAt,
+  useSession, useSessions, useStore, renderChatNode, sessionId, openFile, loadOlder, loadImage, inspectCall, chatScroll, forkAt,
   fileMentions, t,
 }: ChatViewSlotProps) {
   const order = useSession(s => s.chat.order)
@@ -391,7 +391,7 @@ export function ChatView({
               forkAt={forkAt}
               loadImage={loadImage}
               fileMentions={fileMentions}
-              renderSlot={renderSlot}
+              renderSlot={renderChatNode}
               t={t}
             />
           ))}

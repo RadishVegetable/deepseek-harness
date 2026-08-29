@@ -9,7 +9,7 @@ import z from '@deepseek-ai/schemastery'
 import { BlockAssembler, deepFreeze } from '@deepseek-ai/dsh-llm'
 import type { Message, TokenUsage } from '@deepseek-ai/dsh-llm'
 import type { EpochHeader, Session, SessionEvent } from '@deepseek-ai/dsh-session'
-import { canonicalHeader, headerEquals, isSurfaceEvent } from '@deepseek-ai/dsh-session'
+import { canonicalHeader, foldSurface, headerEquals, isSurfaceEvent } from '@deepseek-ai/dsh-session'
 // Type-only: resolves the optional projection registry Context declaration.
 import type {} from '@deepseek-ai/dsh-session-projection'
 import type {
@@ -38,6 +38,8 @@ interface ReplayState {
   surfaceTokens: number
   stepStart: { turn: number; step: number; surfaceTokens: number } | undefined
   anchor: MeasurementAnchor | undefined
+  /** A message/edit marker must be followed by its replacement message. */
+  pendingEdit: boolean
 }
 
 /** Sum disjoint provider usage buckets without double-counting reasoning output. */
@@ -167,6 +169,7 @@ export class TokenMeter extends Service {
         surfaceTokens: 0,
         stepStart: undefined,
         anchor: undefined,
+        pendingEdit: false,
       }
       this.states.set(session, state)
     }
@@ -189,6 +192,11 @@ export class TokenMeter extends Service {
     let nextHeader = state.header
     let nextStepStart = state.stepStart
     let nextAnchor = state.anchor
+    let nextPendingEdit = state.pendingEdit
+
+    if (state.pendingEdit && event.type !== 'user/message' && event.type !== 'assistant/message') {
+      throw new Error(`token meter: message/edit before seq ${event.seq} has no replacement message`)
+    }
 
     switch (event.type) {
       case 'request/header':
@@ -214,11 +222,34 @@ export class TokenMeter extends Service {
         break
     }
 
-    const surface = isSurfaceEvent(event)
+    let surface = isSurfaceEvent(event)
       ? foldSurfaceTokens(state.surface, event)
       : undefined
+    if ((event as { type: string }).type === 'message/edit') {
+      nextPendingEdit = true
+    } else if (state.pendingEdit) {
+      const prefix = session.events.slice(0, event.seq + 1)
+      const nodes = foldSurface(prefix).nodes.map((seq) => {
+        const source = prefix[seq]
+        if (source === undefined || !isSurfaceEvent(source)) {
+          throw new Error(`token meter: edited surface node ${seq} is missing from the replay prefix`)
+        }
+        const message = this.estimateMessageForEvent(source)
+        return { seq, tokens: message }
+      })
+      const tokens = isSurfaceEvent(event) ? this.estimateMessageForEvent(event) : 0
+      const total = nodes.reduce((sum, node) => sum + node.tokens, 0)
+      surface = {
+        tokens,
+        nodes,
+        deltaTokens: total - state.surfaceTokens,
+      }
+      nextPendingEdit = false
+    }
 
-    if (event.type === 'assistant/message') {
+    // An edited assistant message reuses the original step metadata but is
+    // not a new model call, so it must not create or close a step anchor.
+    if (event.type === 'assistant/message' && !state.pendingEdit) {
       const stepStart = state.stepStart
       if (stepStart === undefined
         || stepStart.turn !== event.data.turn
@@ -267,6 +298,26 @@ export class TokenMeter extends Service {
       state.surfaceTokens += surface.deltaTokens
     }
     state.anchor = nextAnchor
+    state.pendingEdit = nextPendingEdit
+  }
+
+  /** Price one persisted surface event, including empty assistant messages. */
+  private estimateMessageForEvent(event: SessionEvent): number {
+    let message: Message | null = null
+    switch (event.type) {
+      case 'user/message':
+        message = event.data
+        break
+      case 'assistant/message':
+        message = event.data.message.content.length === 0 ? null : event.data.message
+        break
+      case 'tool/result':
+        message = event.data.message
+        break
+      default:
+        break
+    }
+    return message === null ? 0 : estimateMessage(message)
   }
 
   /**

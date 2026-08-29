@@ -19,6 +19,7 @@ import { RpcId } from '@deepseek-ai/dsh-client-connection/client'
 import type {
   ChatNode, ChatNodeOwnerProps, ChatNodeViewProps, ChatViewSlotProps, SelectionTarget, UseChatNodeTurnData,
 } from '@deepseek-ai/dsh-client-ui-conversation/client'
+import type { SessionProviderComponent } from '@deepseek-ai/dsh-client-ui-slots'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import { createChatStore } from '../src/client/stores.ts'
@@ -180,7 +181,9 @@ function makeHarness(init?: Partial<ConversationSnapshot>) {
     React.ComponentProps<typeof TurnTailNodeView>['renderSlotChain']
   const renderTurnTailSlot = (() => null) as unknown as
     React.ComponentProps<typeof TurnTailNodeView>['renderSlot']
-  const renderSlot = ((key: string, owner: object, opts?: {
+  const renderUserActions = (() => null) as unknown as
+    React.ComponentProps<typeof UserMessageNodeView>['renderSlot']
+  const renderChatNode = ((key: string, owner: object, opts?: {
     fallback?: React.ReactNode
     hookContext?: unknown
   }) => {
@@ -198,8 +201,9 @@ function makeHarness(init?: Partial<ConversationSnapshot>) {
     )
     switch (nodeOwner.node.kind) {
       case 'user':
+        return <UserMessageNodeView {...nodeProps<'user'>()} renderSlot={renderUserActions} SessionProvider={SessionProviderStub} />
       case 'steering':
-        return <UserMessageNodeView {...nodeProps<'user' | 'steering'>()} />
+        return <UserMessageNodeView {...nodeProps<'steering'>()} renderSlot={renderUserActions} SessionProvider={SessionProviderStub} />
       case 'context':
         return <ContextMessageNodeView {...nodeProps<'context'>()} />
       case 'assistant-step':
@@ -209,7 +213,7 @@ function makeHarness(init?: Partial<ConversationSnapshot>) {
           <CommandNodeView
             {...nodeProps<'command'>()}
             renderSlot={renderCommandSlot}
-            SessionProvider={props.SessionProvider}
+            SessionProvider={SessionProviderStub}
           />
         )
       case 'manual-compaction':
@@ -228,7 +232,7 @@ function makeHarness(init?: Partial<ConversationSnapshot>) {
             {...nodeProps<'turn-tail'>()}
             renderSlot={renderTurnTailSlot}
             renderSlotChain={renderTurnTail}
-            SessionProvider={props.SessionProvider}
+            SessionProvider={SessionProviderStub}
           />
         )
       case 'unknown':
@@ -258,10 +262,10 @@ function makeHarness(init?: Partial<ConversationSnapshot>) {
       default:
         return opts?.fallback ?? null
     }
-  }) as unknown as ChatViewSlotProps['renderSlot']
+  }) as unknown as ChatViewSlotProps['renderChatNode']
   // SessionProvider seat arrives with the session-scope child declaration;
   // ChatView never invokes it (render-prop pass-through stub).
-  const SessionProviderStub: ChatViewSlotProps['SessionProvider'] = ({ children }) => <>{children(SID)}</>
+  const SessionProviderStub: SessionProviderComponent = ({ children }) => <>{children(SID)}</>
   const props: ChatViewSlotProps = {
     sessionId: SID,
     useSession: bindSnapshotSelector(source),
@@ -278,8 +282,7 @@ function makeHarness(init?: Partial<ConversationSnapshot>) {
     },
     useStore: bindSnapshotSelector(chat),
     actions: chat.actions,
-    renderSlot,
-    SessionProvider: SessionProviderStub,
+    renderChatNode,
     openDetails,
     openFile,
     loadOlder,
@@ -844,7 +847,7 @@ describe('ChatView', () => {
     // Count renderSlot invocations: the memo boundary holds when CallRow does
     // not re-render, so the row's renderSlot call count freezes during chunks.
     let rowRenders = 0
-    h.props.renderSlot = ((key: string, owner: object) => {
+    h.props.renderChatNode = ((key: string, owner: object) => {
       if (key !== 'conversation.chat.node'
         || (owner as RoutedChatNodeOwner).node.kind !== 'tool-call') return null
       rowRenders += 1
@@ -899,12 +902,12 @@ describe('ChatView', () => {
       runningCalls: [runningCall('r1')],
       running: true,
     })
-    h.props.renderSlot = ((key: string, owner: object, opts?: { fallback?: React.ReactNode }) => {
+    h.props.renderChatNode = ((key: string, owner: object, opts?: { fallback?: React.ReactNode }) => {
       const routed = owner as RoutedChatNodeOwner
       return key === 'conversation.chat.node' && routed.node.kind === 'tool-call'
         ? <StatefulToolNode node={routed.node} />
         : opts?.fallback ?? null
-    }) as ChatViewSlotProps['renderSlot']
+    }) as ChatViewSlotProps['renderChatNode']
     const view = render(<h.ChatView {...h.props} />)
     const tool = view.getByTestId('stateful-tool')
     const row = view.container.querySelector('[data-chat-flow-key="fixture:tool:r1"]')
@@ -954,7 +957,7 @@ describe('ChatView', () => {
     const block = toolResult(3, 'a')
     const h = makeHarness({ nodes: [block] })
     const calls: { key: string; owner: object; entryKey?: string }[] = []
-    h.props.renderSlot = ((key: string, owner: object, opts?: { entryKey?: string; fallback?: React.ReactNode }) => {
+    h.props.renderChatNode = ((key: string, owner: object, opts?: { entryKey?: string; fallback?: React.ReactNode }) => {
       calls.push({ key, owner, ...(opts?.entryKey !== undefined ? { entryKey: opts.entryKey } : {}) })
       return opts?.fallback ?? null
     })

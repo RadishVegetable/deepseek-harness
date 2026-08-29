@@ -1771,11 +1771,23 @@ class FaceAnalyzer {
     const registration = this.registrationForFile(declaration.getSourceFile().fileName)
     if (registration === undefined) this.fail(site, `type ${symbol.name} is not owned by a workspace package`)
     const candidates: RemoteTypeImportModel[] = []
+    const declarationPath = realPath(declaration.getSourceFile().fileName)
     for (const [subpath, target] of packageExportTargets(registration.manifest)) {
       if (subpath === '.' || subpath === './package.json' || subpath === './typert'
         || subpath === './client/typert' || subpath === './remote' || target.includes('*')) continue
       const sourceFile = this.sourceFiles.get(realPath(sourcePathForExport(registration.root, target)))
-      if (sourceFile === undefined) continue
+      if (sourceFile === undefined) {
+        const sourcePath = realPath(sourcePathForExport(registration.root, target))
+        const artifactPath = realPath(resolve(registration.root, target))
+        if (sourcePath === declarationPath || artifactPath === declarationPath) {
+          candidates.push({
+            symbol: this.symbolId(symbol),
+            specifier: packageExportSpecifier(registration.name, subpath),
+            name: symbol.name,
+          })
+        }
+        continue
+      }
       const moduleSymbol = this.checker.getSymbolAtLocation(sourceFile)
       if (moduleSymbol === undefined) continue
       for (const exported of this.checker.getExportsOfModule(moduleSymbol)) {
@@ -2453,7 +2465,13 @@ class FaceAnalyzer {
     const target = packageExportTargets(registration.manifest)
       .find(([subpath]) => subpath === module.subpath)?.[1]
     if (target === undefined) return undefined
-    const sourceFile = this.sourceFiles.get(realPath(sourcePathForExport(registration.root, target))) as ts.SourceFile
+    const sourcePath = realPath(sourcePathForExport(registration.root, target))
+    const sourceFile = this.sourceFiles.get(sourcePath) as ts.SourceFile
+    // A pure type package may not be a root in this face's bounded program.
+    // TypeScript has already resolved the imported symbol in that case; the
+    // matching name is the only export fact available without loading the
+    // package's source file into this program.
+    if (sourceFile === undefined) return symbol.name === requestedName ? requestedName : undefined
     const moduleSymbol = this.checker.getSymbolAtLocation(sourceFile) as ts.Symbol
     const exported = this.checker.getExportsOfModule(moduleSymbol)
       .find(candidate => candidate.name === requestedName && this.resolveSymbol(candidate) === symbol)

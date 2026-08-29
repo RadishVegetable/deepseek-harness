@@ -1,0 +1,218 @@
+.root {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 54px;
+  box-sizing: border-box;
+  padding: 10px 22px;
+  border-bottom: 1px solid var(--dsw-alias-border-l2);
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-base);
+}
+
+.brandCluster,
+.actions,
+.brand,
+.connection,
+.sessionPicker,
+.newButton {
+  display: flex;
+  align-items: center;
+}
+
+.brandCluster {
+  min-width: 0;
+  gap: 11px;
+}
+
+.brand {
+  flex: 0 0 auto;
+  gap: 9px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+}
+
+.mark {
+  display: grid;
+  flex: 0 0 26px;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 1px solid var(--dsw-alias-brand-primary);
+  border-radius: 6px;
+  color: var(--dsw-alias-brand-primary);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.divider {
+  width: 1px;
+  height: 18px;
+  background: var(--dsw-alias-border-l2);
+}
+
+.mode {
+  overflow: hidden;
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions {
+  flex: 0 0 auto;
+  gap: 12px;
+}
+
+.connection {
+  gap: 7px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.statusDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dsw-alias-state-success-primary);
+}
+
+[data-tavern-status='pending'] .statusDot {
+  background: var(--dsw-alias-state-warn-primary);
+}
+
+[data-tavern-status='running'] .statusDot {
+  box-shadow: 0 0 0 3px var(--dsw-alias-state-business-tertiary);
+}
+
+.sessionPicker {
+  position: relative;
+  gap: 7px;
+  min-width: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.sessionLabel {
+  display: none;
+}
+
+.select {
+  width: min(220px, 24vw);
+  min-height: 32px;
+  padding: 0 28px 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  appearance: none;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-1);
+  cursor: pointer;
+  font: inherit;
+}
+
+.select:focus-visible,
+.newButton:focus-visible {
+  outline: 2px solid var(--dsw-alias-state-business-primary);
+  outline-offset: 2px;
+}
+
+.selectIcon {
+  position: absolute;
+  right: 9px;
+  pointer-events: none;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.newButton {
+  gap: 6px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 6px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-1);
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.newButton:hover {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.newButton:active {
+  transform: translateY(1px);
+}
+
+.newButton:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.loadingIcon {
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.readyIcon {
+  color: var(--dsw-alias-state-success-primary);
+}
+
+:global([data-tavern-surface]) > :global([data-slot='conversation']) > * {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto;
+}
+
+/* Tavern owns the session context in its top bar; the generic header would
+   repeat the same title and view tabs above the workbench. */
+:global([data-tavern-surface]) > :global([data-slot='conversation']) > * > :global([data-slot='conversation.session.header']) {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .root {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 10px;
+    padding: 10px 14px;
+  }
+
+  .brandCluster,
+  .actions {
+    width: 100%;
+  }
+
+  .actions {
+    justify-content: flex-end;
+  }
+
+  .connection {
+    margin-right: auto;
+  }
+
+  .select {
+    width: min(220px, 46vw);
+  }
+}
+
+@media (max-width: 460px) {
+  .mode,
+  .connection > span:last-child,
+  .newButton > span {
+    display: none;
+  }
+
+  .newButton {
+    width: 34px;
+    justify-content: center;
+    padding: 0;
+  }
+
+  .select {
+    width: min(190px, 60vw);
+  }
+}

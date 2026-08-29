@@ -253,6 +253,28 @@ describe('Node compatibility graph', () => {
   })
 })
 
+describe('Tavern release artifact graph', () => {
+  it('cleans before building and verifies the built Tavern startup path', () => {
+    const subject = withPnpmEntrypoint(() => gatesForMode('ci-artifacts'))
+
+    expect(subject.map(item => item.id)).toEqual([
+      'clean',
+      'build',
+      'publint',
+      'node-next-types',
+      'built-package-invariants',
+      'tavern-release-smoke',
+      'built-bin-smoke',
+    ])
+    expect(subject.find(item => item.id === 'build')?.needs).toEqual(['clean'])
+    expect(subject.find(item => item.id === 'tavern-release-smoke')).toMatchObject({
+      label: 'Tavern release smoke',
+      needs: ['build'],
+      args: ['/private/pnpm.cjs', 'exec', 'tsx', 'scripts/tavern-release-smoke.ts'],
+    })
+  })
+})
+
 describe('Node 24 lane ownership', () => {
   it('keeps the static lane source-only', () => {
     const subject = withPnpmEntrypoint(() => gatesForMode('ci-static'))

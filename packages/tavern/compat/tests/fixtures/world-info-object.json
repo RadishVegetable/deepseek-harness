@@ -1,0 +1,35 @@
+{
+  "name": "YMLv2",
+  "entries": {
+    "10": {
+      "uid": 10,
+      "key": ["Chandra"],
+      "keysecondary": ["General"],
+      "content": "Chandra commands Florin's armies.",
+      "constant": false,
+      "selective": true,
+      "enabled": true,
+      "order": 10,
+      "position": 0,
+      "probability": 100,
+      "useProbability": true,
+      "matchWholeWords": true,
+      "unknown_entry_field": "preserve me"
+    },
+    "2": {
+      "uid": 2,
+      "key": ["Florin"],
+      "keysecondary": [],
+      "content": "Florin is a kingdom.",
+      "constant": true,
+      "selective": false,
+      "disable": false,
+      "order": 20,
+      "position": 1,
+      "probability": 100,
+      "useProbability": false
+    }
+  },
+  "description": "Fixture world",
+  "unknown_world_field": true
+}

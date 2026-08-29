@@ -1,0 +1,17 @@
+{
+  "entries": [
+    {
+      "uid": 3,
+      "key": ["dragon"],
+      "secondary_keys": ["fire"],
+      "content": "A dragon guards the pass.",
+      "enabled": true,
+      "constant": false,
+      "selective": true,
+      "position": "after_char",
+      "insertion_order": 3,
+      "probability": 50,
+      "use_regex": false
+    }
+  ]
+}

@@ -85,6 +85,42 @@ describe('derived-message cache', () => {
     expect(Object.isFrozen(first[0])).toBe(true)
   })
 
+  it('invalidates a summary when an edit targets a folded message and replays identically', () => {
+    const session = Session.create(SessionId('cache-edit-summary'))
+    const first = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'first' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    const second = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'second' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    const third = session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'third' }], source: { kind: 'user' },
+    }), { surfaceOp: 'append' })
+    const nodes = session.surface.nodes
+    session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'summary' }], source: { kind: 'plugin', plugin: 'compact' },
+    }), {
+      surfaceOp: { op: 'replace', start: nodes[0]!, end: nodes.at(-1)! },
+      sourceEventSeqs: [...nodes],
+    })
+    expect(session.deriveMessages()).toHaveLength(1)
+
+    session.editMessage(second.seq, {
+      ...second.data,
+      content: [{ type: 'text', text: 'edited second' }],
+    })
+
+    expect(session.deriveMessages().map(message => message.content[0])).toEqual([
+      first.data.content[0],
+      { type: 'text', text: 'edited second' },
+    ])
+    expect(session.deriveMessages().some(message => message.content[0] === third.data.content[0])).toBe(false)
+    expect(session.events.some(event => event.type === 'message/edit')).toBe(true)
+    const replay = Session.create(SessionId('cache-edit-summary-replay'), [...session.events])
+    expect(replay.deriveMessages()).toEqual(session.deriveMessages())
+    expect(replay.surface.nodes).toEqual(session.surface.nodes)
+  })
+
 })
 
 describe('Session.deriveEventMessage — the per-event projection', () => {

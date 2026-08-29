@@ -150,6 +150,13 @@ describe('kind semantics', () => {
     expect(core.entries('test.list').map(e => e.options.id)).toEqual(['a', 'b', 'c'])
   })
 
+  it('list: preserves blank-session rendering options in the ledger', () => {
+    const core = new SlotCore()
+    mountFrame(core)
+    core.register({ name: 'test.list', id: 'blank', renderWhenBlank: true }, Comp)
+    expect(core.entries('test.list')[0]?.options.renderWhenBlank).toBe(true)
+  })
+
   it('chain: missing select throws; select and priority land on the stored entry', () => {
     const core = new SlotCore()
     mountFrame(core)

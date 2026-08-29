@@ -34,6 +34,14 @@ pnpm run build
 pnpm dsh web
 ```
 
+To start the dedicated Tavern roleplay workspace from the same checkout:
+
+```sh
+pnpm run tavern
+```
+
+It serves the Tavern UI at `http://127.0.0.1:3080` by default. Web arguments can be forwarded after `--`, for example `pnpm run tavern -- --port 3081`.
+
 ## Community and support
 
 - Feel free to submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).

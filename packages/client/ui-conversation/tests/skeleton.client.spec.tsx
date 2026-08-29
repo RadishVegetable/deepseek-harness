@@ -415,6 +415,22 @@ describe('ConversationRoot resident composer', () => {
     expect(b.view.getByRole('textbox')).toBeTruthy()
   })
 
+  it('renders only a view that opts into blank sessions', () => {
+    const b = mount(
+      conversationSnapshot({ composerPhase: 'blank', blank: true }),
+      undefined,
+      undefined,
+      { viewTabs: [
+        { id: 'chat', label: 'Chat' },
+        { id: 'tavern', label: 'Tavern', renderWhenBlank: true },
+      ] },
+    )
+    expect(b.view.queryByTestId('view-chat')).toBeNull()
+    act(() => { b.chat.actions.setView('tavern') })
+    b.rerender()
+    expect(b.view.getByTestId('view-tavern')).toBeTruthy()
+  })
+
   it('same textarea DOM node survives the hero → active flip into the sticky scrollport', () => {
     const b = mount(conversationSnapshot({ composerPhase: 'blank', blank: true }))
     const before = b.view.getByRole('textbox')

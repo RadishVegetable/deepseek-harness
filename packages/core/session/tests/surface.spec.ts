@@ -78,6 +78,27 @@ function toolResultEvent(
   }
 }
 
+function appendUser(session: Session, text: string, source: 'user' | 'plugin' = 'user'): SessionEvent<'user/message'> {
+  return session.append('user/message', createUserMessage({
+    content: [{ type: 'text', text }],
+    source: source === 'user' ? { kind: 'user' } : { kind: 'plugin', plugin: 'compaction' },
+  }), { surfaceOp: 'append' })
+}
+
+function appendSummary(session: Session, text: string): SessionEvent<'user/message'> {
+  const nodes = [...session.surface.nodes]
+  const start = nodes[0]
+  const end = nodes.at(-1)
+  if (start === undefined || end === undefined) throw new Error('test summary requires a non-empty surface')
+  return session.append('user/message', createUserMessage({
+    content: [{ type: 'text', text }],
+    source: { kind: 'plugin', plugin: 'compaction' },
+  }), {
+    surfaceOp: { op: 'replace', start, end },
+    sourceEventSeqs: nodes,
+  })
+}
+
 describe('foldSurface source-event references', () => {
   it('accepts absent or valid source-event references and complete replacement coverage', () => {
     const events = [
@@ -482,6 +503,167 @@ describe('SurfaceManager', () => {
     const replayed = Session.create(SessionId('replay'), [...original.events])
     expect(replayed.surface.nodes).toEqual([1, 2, 4])
     expect(replayed.deriveMessages()).toEqual(original.deriveMessages())
+  })
+
+  it.each([
+    ['the first message', 0],
+    ['a middle message', 2],
+    ['the last message', 4],
+  ] as const)('edits %s after a summary folded the full range', (_label, targetIndex) => {
+    const session = Session.create(SessionId(`edit-summary-${targetIndex}`))
+    const messages = Array.from({ length: 5 }, (_, index) => appendUser(session, `message ${index}`))
+    appendSummary(session, 'summary')
+    const target = messages[targetIndex]!
+
+    session.editMessage(target.seq, {
+      ...target.data,
+      content: [{ type: 'text', text: `edited ${targetIndex}` }],
+    })
+
+    const replacement = session.events.at(-1)!
+    expect(session.surface.nodes).toEqual([
+      ...messages.slice(0, targetIndex).map(event => event.seq),
+      replacement.seq,
+    ])
+    expect(session.deriveMessages().map(message => message.content[0])).toEqual([
+      ...messages.slice(0, targetIndex).map(event => event.data.content[0]),
+      { type: 'text', text: `edited ${targetIndex}` },
+    ])
+    expect(foldSurface(session.events).nodes).toEqual(session.surface.nodes)
+  })
+
+  it('edits through multiple nested summaries and can edit the same history again', () => {
+    const session = Session.create(SessionId('edit-nested-summaries'))
+    const messages = Array.from({ length: 4 }, (_, index) => appendUser(session, `message ${index}`))
+
+    // The first summary folds a prefix, and the second summary folds that
+    // replacement together with the remaining tail.
+    session.append('user/message', createUserMessage({
+      content: [{ type: 'text', text: 'summary one' }],
+      source: { kind: 'plugin', plugin: 'compaction' },
+    }), {
+      surfaceOp: { op: 'replace', start: 0, end: 1 },
+      sourceEventSeqs: [0, 1],
+    })
+    appendSummary(session, 'summary two')
+
+    session.editMessage(messages[1]!.seq, {
+      ...messages[1]!.data,
+      content: [{ type: 'text', text: 'edited once' }],
+    })
+    expect(session.deriveMessages().map(message => message.content[0])).toEqual([
+      messages[0]!.data.content[0],
+      { type: 'text', text: 'edited once' },
+    ])
+
+    session.editMessage(messages[1]!.seq, {
+      ...messages[1]!.data,
+      content: [{ type: 'text', text: 'edited twice' }],
+    })
+    expect(session.deriveMessages().map(message => message.content[0])).toEqual([
+      messages[0]!.data.content[0],
+      { type: 'text', text: 'edited twice' },
+    ])
+
+    session.editMessage(messages[0]!.seq, {
+      ...messages[0]!.data,
+      content: [{ type: 'text', text: 'edited first' }],
+    })
+    expect(session.deriveMessages().map(message => message.content[0])).toEqual([
+      { type: 'text', text: 'edited first' },
+    ])
+    expect(foldSurface(session.events).nodes).toEqual(session.surface.nodes)
+
+    const replay = Session.create(SessionId('edit-nested-summaries-replay'), [...session.events])
+    expect(replay.deriveMessages()).toEqual(session.deriveMessages())
+    expect(replay.surface.nodes).toEqual(session.surface.nodes)
+  })
+
+  it('edits an assistant message while retaining its identity and step metadata', () => {
+    const session = Session.create(SessionId('edit-assistant'))
+    session.append('step/start', { turn: 1, step: 1 })
+    const assistant = session.append('assistant/message', {
+      turn: 1,
+      step: 1,
+      message: createMessage({
+        role: 'assistant',
+        content: [{ type: 'text', text: 'original answer' }],
+        source: { kind: 'model', provider: 'mock', model: 'mock' },
+      }),
+    }, { surfaceOp: 'append' })
+
+    session.editMessage(assistant.seq, {
+      ...assistant.data.message,
+      content: [{ type: 'text', text: 'edited answer' }],
+    })
+
+    const replacement = session.events.at(-1)
+    expect(replacement?.type).toBe('assistant/message')
+    if (replacement?.type !== 'assistant/message') throw new Error('test replacement must be assistant/message')
+    expect(replacement.data.turn).toBe(1)
+    expect(replacement.data.step).toBe(1)
+    expect(replacement.data.message.id).toBe(assistant.data.message.id)
+    expect(session.deriveMessages().map(message => message.content[0])).toEqual([
+      { type: 'text', text: 'edited answer' },
+    ])
+  })
+
+  it('rejects an incomplete message/edit transaction in complete replay', () => {
+    const session = Session.create(SessionId('edit-incomplete'))
+    const target = appendUser(session, 'original')
+    session.append('message/edit', {
+      targetSeq: target.seq,
+      messageId: target.data.id,
+      shadowedSeqs: [target.seq],
+    })
+
+    expect(() => foldSurface(session.events)).toThrow(/has no replacement message/)
+    expect(() => session.surface.nodes).toThrow(/has no replacement message/)
+  })
+
+  it('rejects an edit with a stale message identity before replacing the surface', () => {
+    const session = Session.create(SessionId('edit-stale-id'))
+    const target = appendUser(session, 'original')
+    const edit = {
+      type: 'message/edit',
+      seq: session.seq,
+      time: 1,
+      data: {
+        targetSeq: target.seq,
+        messageId: 'message-stale',
+        shadowedSeqs: [target.seq],
+      },
+    } as unknown as SessionEvent
+
+    expect(() => foldSurface([...session.events, edit])).toThrow(/retain its message identity and role/)
+  })
+
+  it('rejects a replacement with the wrong role after an edit marker', () => {
+    const session = Session.create(SessionId('edit-wrong-role'))
+    const target = appendUser(session, 'original')
+    const edit = session.append('message/edit', {
+      targetSeq: target.seq,
+      messageId: target.data.id,
+      shadowedSeqs: [target.seq],
+    })
+    const replacement = {
+      type: 'assistant/message',
+      seq: edit.seq + 1,
+      time: 1,
+      data: {
+        turn: 1,
+        step: 1,
+        message: createMessage({
+          role: 'assistant',
+          content: [{ type: 'text', text: 'wrong role' }],
+          source: { kind: 'model', provider: 'mock', model: 'mock' },
+        }),
+      },
+      surfaceOp: { op: 'replace', start: target.seq, end: target.seq },
+      sourceEventSeqs: [target.seq],
+    } as unknown as SessionEvent
+
+    expect(() => foldSurface([...session.events, replacement])).toThrow(/must be followed by a user\/message/)
   })
 
   it('rebuild with replace operation splices out shadowed nodes', () => {

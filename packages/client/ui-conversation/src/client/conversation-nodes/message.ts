@@ -27,13 +27,18 @@ function isCompactionCheckpoint(event: Parameters<ConversationNodeDefinition['ma
   return source.kind === 'plugin' && source.plugin === 'compact'
 }
 
+/** A replacement user message is the visible result of a historical edit. */
+function isEditedUserMessage(event: Parameters<ConversationNodeDefinition['match']>[0]): boolean {
+  if (event.type !== 'user/message' || !isReplacementSurfaceEvent(event)) return false
+  return event.data.source.kind === 'user'
+}
+
 /** User, steering, and injected-context message classification Definition. */
 export const messageDefinition: ConversationNodeDefinition<MessageNode> = {
   kind: 'input-message',
   target: 'chat',
   match: event => event.type === 'user/message'
-    && isAppendSurfaceEvent(event)
-    && !isCompactionCheckpoint(event)
+    && ((isAppendSurfaceEvent(event) && !isCompactionCheckpoint(event)) || isEditedUserMessage(event))
     ? { id: String(event.data.id), role: 'start' }
     : null,
   start: (_context, match, reader) => {

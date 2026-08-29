@@ -376,13 +376,15 @@ function ciStaticGates(options: { ownsBuild: boolean }): Gate[] {
 
 function ciArtifactGates(): Gate[] {
   return [
-    pnpmScript('build', 'build'),
+    pnpmScript('clean', 'clean'),
+    pnpmScript('build', 'build', { needs: ['clean'] }),
     pnpmScript('publint', 'publint', { needs: ['build'] }),
     pnpmScript('node-next-types', 'verify-node-next-types', {
       label: 'node-next types',
       needs: ['build'],
     }),
     builtPackageInvariantsGate(['build']),
+    tavernReleaseSmokeGate(['build']),
     builtBinSmokeGate(),
   ]
 }
@@ -547,6 +549,13 @@ function builtPackageInvariantsGate(needs?: string[]): Gate {
   return pnpmScript('built-package-invariants', 'verify-built-package-invariants', {
     label: 'built package invariants',
     ...needs === undefined ? {} : { needs },
+  })
+}
+
+function tavernReleaseSmokeGate(needs: string[] = ['build']): Gate {
+  return pnpmExec('tavern-release-smoke', ['tsx', 'scripts/tavern-release-smoke.ts'], {
+    label: 'Tavern release smoke',
+    needs,
   })
 }
 

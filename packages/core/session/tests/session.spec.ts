@@ -140,6 +140,22 @@ describe('Session', () => {
     expect(replayed.firstLiveSeq).toBe(original.seq)
   })
 
+  it.each([
+    ['targetSeq', { targetSeq: -1, messageId: 'message-1', shadowedSeqs: [0] }],
+    ['messageId', { targetSeq: 0, messageId: '', shadowedSeqs: [0] }],
+    ['shadowedSeqs', { targetSeq: 0, messageId: 'message-1', shadowedSeqs: [] }],
+  ] as const)('rejects malformed message/edit payloads at the seed boundary (%s)', (_field, data) => {
+    const event = {
+      type: 'message/edit',
+      seq: 0,
+      time: 1,
+      data,
+    } as unknown as SessionEvent
+
+    expect(() => Session.create(SessionId(`malformed-edit-${_field}`), [event]))
+      .toThrow(new RegExp(`invalid message/edit ${_field}`))
+  })
+
   it('marks an explicitly empty seed without marking a fresh session', () => {
     const fresh = Session.create(SessionId('fresh-empty'))
     expect(fresh.events).toEqual([])

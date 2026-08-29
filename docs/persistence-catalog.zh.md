@@ -496,6 +496,19 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 来源：[`packages/llm/llm-retry/src/types.ts:11`](../packages/llm/llm-retry/src/types.ts)
 
+### `message/*`
+
+<a id="messageedit--log-only"></a>
+
+#### `message/edit` — log-only
+
+```ts persistence-catalog
+/** Opens an append-only historical edit transaction; the next message event carries its replacement. */
+'message/edit': { targetSeq: number; messageId: string; shadowedSeqs: number[] }
+```
+
+来源：[`packages/core/session/src/types.ts:299`](../packages/core/session/src/types.ts)
+
 ### `permission/*`
 
 <a id="permissionpreset--log-only"></a>
@@ -707,6 +720,74 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 ```
 
 来源：[`packages/subagent/subagent/src/descriptor.ts:37`](../packages/subagent/subagent/src/descriptor.ts)
+
+### `tavern/*`
+
+<a id="tavernassets-selected--log-only"></a>
+
+#### `tavern/assets-selected` — log-only
+
+```ts persistence-catalog
+/** The character and World Info baseline selected for later turns. */
+'tavern/assets-selected': TavernAssetsSelectedEvent
+```
+
+来源：[`packages/tavern/host/src/session.ts:46`](../packages/tavern/host/src/session.ts)
+
+<a id="taverncontext-activation--log-only"></a>
+
+#### `tavern/context-activation` — log-only
+
+```ts persistence-catalog
+/** The World Info compiler decision used for one model-visible snapshot. */
+'tavern/context-activation': TavernContextActivationEvent
+```
+
+来源：[`packages/tavern/host/src/session.ts:48`](../packages/tavern/host/src/session.ts)
+
+<a id="taverngreeting--log-only"></a>
+
+#### `tavern/greeting` — log-only
+
+```ts persistence-catalog
+/** The first Character Card greeting displayed and projected into later prompts. */
+'tavern/greeting': TavernGreetingEvent
+```
+
+来源：[`packages/tavern/host/src/types.ts:50`](../packages/tavern/host/src/types.ts)
+
+<a id="tavernmemory--log-only"></a>
+
+#### `tavern/memory` — log-only
+
+```ts persistence-catalog
+/** A durable memory entry update used by the Tavern context projection. */
+'tavern/memory': import('./types.ts').TavernMemoryEvent
+```
+
+来源：[`packages/tavern/host/src/session.ts:50`](../packages/tavern/host/src/session.ts)
+
+<a id="tavernstory-state--log-only"></a>
+
+#### `tavern/story-state` — log-only
+
+```ts persistence-catalog
+/** A durable canonical story-state change used by the Tavern context projection. */
+'tavern/story-state': TavernStoryStateEvent
+```
+
+来源：[`packages/tavern/host/src/session.ts:52`](../packages/tavern/host/src/session.ts)
+
+<a id="tavernswipe--log-only"></a>
+
+#### `tavern/swipe` — log-only
+
+```ts persistence-catalog
+/** A durable assistant candidate addition or user selection. */
+'tavern/swipe': TavernSwipeEvent
+```
+
+来源：[`packages/tavern/host/src/types.ts:186`](../packages/tavern/host/src/types.ts)
 
 ### `todo/*`
 

@@ -1,0 +1,54 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "lib/types"
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../runtime-diagnostics/invariants"
+    },
+    {
+      "path": "../compat"
+    },
+    {
+      "path": "../assets"
+    },
+    {
+      "path": "../../typert/protocol"
+    },
+    {
+      "path": "../../storage/storage-domain"
+    },
+    {
+      "path": "../../core/agent"
+    },
+    {
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../core/system-prompt"
+    },
+    {
+      "path": "../../preset/agent-presets"
+    },
+    {
+      "path": "../../workspace/workspace"
+    },
+    {
+      "path": "../context"
+    },
+    {
+      "path": "../state"
+    }
+  ]
+}

@@ -4,7 +4,7 @@ import { useEffect, useSyncExternalStore } from 'react'
 import clsx from 'clsx'
 import type { SessionId, SessionListState, SessionSummary } from '@deepseek-ai/dsh-client-runtime/client'
 import type {
-  ConversationSessionHeaderSlotProps, ConversationSessionSlotProps,
+  ChatNodeSlotRenderer, ConversationSessionHeaderSlotProps, ConversationSessionSlotProps,
 } from '../contract/slots.ts'
 import type { ViewTab } from '../contract/views.ts'
 import css from './ConversationRoot.module.css'
@@ -23,8 +23,12 @@ interface Breadcrumb {
 const DEFAULT_VIEW_ID = 'chat'
 
 /** Resolve by id and keep stale persisted selections on the stable Chat fallback. */
-function resolveActiveView(tabs: readonly ViewTab[], selectedId: string | null): ViewTab | undefined {
-  const requestedId = selectedId ?? DEFAULT_VIEW_ID
+function resolveActiveView(
+  tabs: readonly ViewTab[],
+  selectedId: string | null,
+  defaultView: string | undefined,
+): ViewTab | undefined {
+  const requestedId = selectedId ?? defaultView ?? DEFAULT_VIEW_ID
   return tabs.find(view => view.id === requestedId)
     ?? tabs.find(view => view.id === DEFAULT_VIEW_ID)
 }
@@ -60,12 +64,12 @@ function equalBreadcrumbs(left: readonly Breadcrumb[], right: readonly Breadcrum
  */
 export function ConversationSessionHeader({
   sessionId, useSession, useSessions, useStore, actions,
-  renderSlot, views, open, t,
+  renderSlot, views, open, defaultView, t,
 }: ConversationSessionHeaderProps) {
   useSyncExternalStore(views.subscribe, views.version)
   const tabs = views.list()
   const selectedId = useStore(s => s.view)
-  const active = resolveActiveView(tabs, selectedId)
+  const active = resolveActiveView(tabs, selectedId, defaultView?.())
   const ancestry = useSessions(s => deriveAncestry(s, sessionId), equalBreadcrumbs)
   const composerPhase = useSession(s => s.composerPhase)
   const blank = useSession(s => s.blank)
@@ -137,12 +141,12 @@ export function ConversationSessionHeader({
  */
 export function ConversationSession({
   sessionId, useSession, useInput, inputActions, useStore, actions,
-  renderSlot, views, bindDraftMirror, releaseSessionImages,
+  renderSlot, views, defaultView, bindDraftMirror, releaseSessionImages,
 }: ConversationSessionProps) {
   useSyncExternalStore(views.subscribe, views.version)
   const tabs = views.list()
   const selectedId = useStore(s => s.view)
-  const active = resolveActiveView(tabs, selectedId)
+  const active = resolveActiveView(tabs, selectedId, defaultView?.())
   const composerPhase = useSession(s => s.composerPhase)
   const blank = useSession(s => s.blank)
   const inputState = useInput(s => s)
@@ -162,12 +166,13 @@ export function ConversationSession({
     releaseSessionImages(sessionId)
   }, [releaseSessionImages, sessionId])
 
-  if (blank && composerPhase === 'blank') return null
+  if (blank && composerPhase === 'blank' && active?.renderWhenBlank !== true) return null
   return (
     <div className={css.viewArea}>
       {active !== undefined && renderSlot('conversation.view', {
         inspect,
         onInspectDone: () => { actions.setInspect(null) },
+        renderChatNode: renderSlot as unknown as ChatNodeSlotRenderer,
       }, { only: active.id })}
     </div>
   )

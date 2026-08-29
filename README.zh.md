@@ -34,6 +34,14 @@ pnpm run build
 pnpm dsh web
 ```
 
+如需启动独立的 Tavern 角色扮演工作台：
+
+```sh
+pnpm run tavern
+```
+
+默认地址为 `http://127.0.0.1:3080`。Web 参数可以通过 `--` 继续传入，例如 `pnpm run tavern -- --port 3081`。
+
 ## 社区与支持
 
 - 欢迎通过 [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions) 提交反馈或 bug 报告。

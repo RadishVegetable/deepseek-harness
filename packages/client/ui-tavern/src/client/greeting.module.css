@@ -1,0 +1,44 @@
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  max-width: 760px;
+  padding: 8px 12px;
+}
+
+.avatar {
+  display: grid;
+  flex: 0 0 28px;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--dsw-alias-border-primary);
+  border-radius: 50%;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-2);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.body {
+  min-width: 0;
+}
+
+.name {
+  margin: 0 0 4px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.bubble {
+  padding: 9px 11px;
+  border: 1px solid var(--dsw-alias-border-secondary);
+  border-radius: 6px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-2);
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}

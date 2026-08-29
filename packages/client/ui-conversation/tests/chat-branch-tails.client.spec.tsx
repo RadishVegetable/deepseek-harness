@@ -11,7 +11,7 @@ import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-web-react'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { zh as commonZh } from '@deepseek-ai/dsh-client-locale/src/locales/zh.ts'
 import type {
-  ChatConversationViewNode, ConversationNode,
+  ChatConversationViewNode, ConversationNode, SessionId,
 } from '@deepseek-ai/dsh-client-runtime/client'
 import type { ChatNodeViewProps } from '../src/client/contract/slots.ts'
 import {
@@ -65,8 +65,17 @@ function MessageItem({ node, t: translate }: MessageItemProps) {
   const props = { node: viewNode, t: translate } as ChatNodeViewProps
   switch (node.kind) {
     case 'user':
+      return <UserMessageNodeView
+        {...props as ChatNodeViewProps<'user'>}
+        renderSlot={() => null}
+        SessionProvider={({ children }) => children('s1' as SessionId)}
+      />
     case 'steering':
-      return <UserMessageNodeView {...props as ChatNodeViewProps<'user' | 'steering'>} />
+      return <UserMessageNodeView
+        {...props as ChatNodeViewProps<'steering'>}
+        renderSlot={() => null}
+        SessionProvider={({ children }) => children('s1' as SessionId)}
+      />
     case 'context':
       return <ContextMessageNodeView {...props as ChatNodeViewProps<'context'>} />
     case 'compaction':

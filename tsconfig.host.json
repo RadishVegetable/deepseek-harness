@@ -107,6 +107,11 @@
     "scripts/client-bundle-purity.spec.ts"
   ],
   "references": [
+    { "path": "./packages/tavern/compat" },
+    { "path": "./packages/tavern/assets" },
+    { "path": "./packages/tavern/host" },
+    { "path": "./packages/tavern/context" },
+    { "path": "./packages/tavern/state" },
     { "path": "./vendor/cosmokit" },
     { "path": "./vendor/schemastery" },
     { "path": "./vendor/cordis" },
@@ -242,6 +247,7 @@
     { "path": "./packages/bundle/base" },
     { "path": "./packages/bundle/headless" },
     { "path": "./packages/bundle/web-app" },
+    { "path": "./packages/bundle/tavern" },
     { "path": "./packages/boot/app-boot" },
     { "path": "./packages/boot/cmdline" },
     { "path": "./packages/sdk/server" },

@@ -1,8 +1,8 @@
 /** Conversation slot declarations and their composed component props. */
-import type { ReactNode, RefObject } from 'react'
+import type { ComponentType, ReactNode, RefObject } from 'react'
 import type { ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type {
-  InjectFace, MaybeSnapshotSelectorHook, PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore,
+  BoundActions, InjectFace, MaybeSnapshotSelectorHook, PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore,
   SlotHookFactory, SnapshotSelectorHook,
 } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
@@ -69,9 +69,9 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     /**
      * The conversation view ring: one list entry per view tab (chat here;
      * trajectory/waterfall from ui-trajectory), rendered one-at-a-time by
-     * the session body via `only: <active id>`. Declared by this package's
-     * body entry (declaring is claiming). Session scope: views read the
-     * conversation snapshot through the standard kit.
+     * the session body via `only: <active id>`. The session body also passes
+     * the shared Chat Node renderer into each view, so a view can compose the
+     * standard Chat flow without claiming a second keyed slot.
      */
     'conversation.view': { kind: 'list'; scope: 'session'; owner: ConvViewOwnerProps }
     /** Final business node renderer, dispatched by `ChatConversationViewNode.kind`. */
@@ -110,6 +110,12 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
       kind: 'list'
       scope: 'session'
       owner: AssistantActionOwnerProps
+    }
+    /** Action strip attached to one finalized direct user message. */
+    'conversation.chat.user-actions': {
+      kind: 'list'
+      scope: 'session'
+      owner: UserActionOwnerProps
     }
     /**
      * The body of the details panel for the tool call the user selected —
@@ -287,6 +293,8 @@ export interface ConvViewOwnerProps {
   inspect?: { callId: CallId } | null
   /** Acknowledge the inspect request once applied (clears the store field). */
   onInspectDone?: () => void
+  /** Render one shared Chat Node through the session-owned keyed renderer slot. */
+  renderChatNode: ChatNodeSlotRenderer
 }
 
 /**
@@ -340,6 +348,14 @@ export interface AssistantActionOwnerProps {
   messageId: MessageId
 }
 
+/** Owner currency of the user-message action strip. */
+export interface UserActionOwnerProps {
+  /** Durable source event sequence addressed by the action. */
+  seq: number
+  /** Plain text currently rendered in the message. */
+  text: string
+}
+
 /** Hook constrained to business data published on the current Chat Node's Turn. */
 export type UseChatNodeTurnData = <Key extends Extract<keyof ConversationTurnDataMap, string>>(
   key: Key,
@@ -365,6 +381,9 @@ export interface ChatNodeOwnerProps {
   loadImage: (attachment: ImageAttachmentRef) => Promise<string>
   fileMentions: (owner: TurnTailOwnerProps) => MarkdownFileMentions | undefined
 }
+
+/** Shared keyed Chat Node renderer passed from the Session body to view entries. */
+export type ChatNodeSlotRenderer = PropsRenderSlots<'conversation.chat.node'>['renderSlot']
 
 /** Full props of one registered keyed Chat business renderer. */
 export type ChatNodeViewProps<Kind extends ChatNodeKind = ChatNodeKind> =
@@ -409,6 +428,16 @@ export type ConvViewProps = PropsRuntime<'conversation.view'>
 /** The shared chat store handle type declared by the Session header/body, details, and chat-view registrations. */
 export type ChatStore = ReturnType<typeof createChatStore>
 
+/** Shared Chat view registration face for optional conversation surfaces. */
+export interface ConversationChatView {
+  readonly store: ChatStore
+  /** Shared ChatView component; alternate views render it through this service face. */
+  readonly component: ComponentType<ChatViewSlotProps>
+  readonly inject: (sessionId: SessionId, actions: BoundActions<ChatStore>) => ChatViewInjected
+  /** Set the default view used when a session has no explicit persisted view. */
+  readonly setDefaultView?: (viewId: string | undefined) => void
+}
+
 /** Business callbacks injected into the conversation slot. */
 export interface ConversationInjected {
   /**
@@ -436,6 +465,8 @@ export interface ConversationSessionInjected {
   releaseSessionImages: (sessionId: SessionId) => void
   /** Bind the input machine's draft persistence mirror to the session store. */
   bindDraftMirror: (write: (text: string) => void) => () => void
+  /** Profile-selected view used only when the session has no explicit choice. */
+  defaultView?: () => string | undefined
 }
 
 /** Business callbacks injected into the strict session header seat. */
@@ -448,6 +479,8 @@ export interface ConversationSessionHeaderInjected {
   }
   /** Select a real Session through the runtime navigation owner. */
   open: (sessionId: SessionId) => void
+  /** Profile-selected view used only when the session has no explicit choice. */
+  defaultView?: () => string | undefined
 }
 
 /**
@@ -582,7 +615,7 @@ export type ConversationSlotProps =
 /** Full strict-session body props: per-session store, view ring, and draft mirror. */
 export type ConversationSessionSlotProps =
   PropsRuntime<'conversation.session'>
-  & PropsRenderSlots<'conversation.view'>
+  & PropsRenderSlots<'conversation.view' | 'conversation.chat.node'>
   & PropsStore<ChatStore>
   & ConversationSessionInjected
 
@@ -709,7 +742,7 @@ export interface ChatViewInjected {
 
 /** Full chat-view component props: runtime & its Tool/command/tail render shares & store & injected & locale seat. */
 export type ChatViewSlotProps =
-  PropsRuntime<'conversation.view'> & PropsRenderSlots<'conversation.chat.node'>
+  PropsRuntime<'conversation.view'>
   & PropsStore<ChatStore> & ChatViewInjected & PropsLocale<'conversation'>
 
 /**

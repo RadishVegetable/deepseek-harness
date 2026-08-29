@@ -11,7 +11,7 @@ import { isAbsolute } from 'node:path'
 import { deepFreeze } from '@deepseek-ai/dsh-llm'
 import { scopeOf, scopeTarget } from '@deepseek-ai/dsh-scope'
 import type { Scoped } from '@deepseek-ai/dsh-scope'
-import type { Message } from '@deepseek-ai/dsh-llm'
+import type { AssistantMessage, Message, UserMessage } from '@deepseek-ai/dsh-llm'
 import { SESSION_FORMAT_VERSION, SessionId } from './types.ts'
 import type { TypertLookup } from '@deepseek-ai/dsh-typert-protocol'
 import type { CreateSessionOptions, EpochHeader, PrepareSessionOptions, RequestContext, SessionEvent, SessionEventMap, SessionEventType, SessionHeader, SurfaceIntent, SurfaceEventType } from './types.ts'
@@ -29,7 +29,7 @@ export type { JsonValue } from './json.ts'
 export { interruptedTurnClosers, TOOL_NOT_STARTED, TOOL_OUTCOME_UNKNOWN } from './repair.ts'
 export { decodeStorageRecord, packChunkRuns } from './chunk-rows.ts'
 export type { ChunkRow, StorageRecord } from './chunk-rows.ts'
-export type { SessionSurface, SurfaceFoldReplacement, SurfaceFoldResult } from './surface.ts'
+export type { SessionSurface, SurfaceEditIntent, SurfaceFoldReplacement, SurfaceFoldResult } from './surface.ts'
 export { deriveEventMessage, foldSurface, isAppendSurfaceEvent, isReplacementSurfaceEvent, isSurfaceEvent, isSurfaceEligibleType } from './surface.ts'
 export { canonicalHeader, foldRequestHeader, headerEquals } from './request-header.ts'
 export { KNOWN_SESSION_EVENT_TYPES } from './known-event-types.ts'
@@ -244,6 +244,7 @@ function assertSessionEventEnvelope(value: Record<string, unknown>, index: numbe
     case 'user/message':
     case 'assistant/message':
     case 'tool/result':
+    case 'message/edit':
       assertCurrentLlmShape(event, index)
       break
   }
@@ -271,6 +272,10 @@ function assertCurrentLlmShape(event: Record<string, unknown>, index: number): v
     assertAdapterDefaults(headerRecord?.['adapterDefaults'], configRecord, index)
   }
   const type = event['type']
+  if (type === 'message/edit') {
+    assertMessageEventShape(event, `seed ${type} at index ${index}`)
+    return
+  }
   if (type !== 'user/message' && type !== 'assistant/message'
     && type !== 'tool/result') return
   assertMessageEventShape(event, `seed ${type} at index ${index}`)
@@ -300,8 +305,28 @@ function assertAdapterDefaults(
 /** Validate only the event-specific invariants needed to safely replay a message. */
 function assertMessageEventShape(event: Record<string, unknown>, subject: string): void {
   const type = event['type']
-  if (type !== 'user/message' && type !== 'assistant/message'
-    && type !== 'tool/result') return
+  if (type === 'message/edit') {
+    const data = event['data']
+    const record = typeof data === 'object' && data !== null
+      ? data as Record<string, unknown>
+      : undefined
+    if (typeof record?.['targetSeq'] !== 'number'
+      || !Number.isSafeInteger(record['targetSeq'])
+      || record['targetSeq'] < 0) {
+      throw new Error(`${subject} has invalid message/edit targetSeq`)
+    }
+    if (typeof record['messageId'] !== 'string' || record['messageId'].length === 0) {
+      throw new Error(`${subject} has invalid message/edit messageId`)
+    }
+    const shadowed = record['shadowedSeqs']
+    if (!Array.isArray(shadowed) || shadowed.length === 0
+      || shadowed.some(value => typeof value !== 'number' || !Number.isSafeInteger(value) || value < 0)
+      || new Set(shadowed).size !== shadowed.length) {
+      throw new Error(`${subject} has invalid message/edit shadowedSeqs`)
+    }
+    return
+  }
+  if (type !== 'user/message' && type !== 'assistant/message' && type !== 'tool/result') return
   const data = event['data']
   const record = typeof data === 'object' && data !== null
     ? data as Record<string, unknown>
@@ -652,6 +677,43 @@ export class Session {
         if (entry.detachRequested && !entry.announcing) entry.detach()
       }
     }
+  }
+
+  /**
+   * Append a historical message edit and its standard surface replacement.
+   *
+   * The first event records the transaction and the second event retains the
+   * original message identity while replacing the visible continuation.
+   * @param targetSeq - earlier user or assistant message event sequence.
+   * @param message - edited message with the target's identity and role.
+   * @returns the durable edit transaction event.
+   */
+  editMessage(
+    targetSeq: number,
+    message: UserMessage | AssistantMessage,
+  ): SessionEvent<'message/edit'> {
+    const intent = this.surfaceManager.editIntent(targetSeq)
+    if (message.role !== intent.role || message.id !== intent.messageId) {
+      throw new Error(`message/edit target seq ${targetSeq} must retain its message identity and role`)
+    }
+    const edit = this.append('message/edit', {
+      targetSeq,
+      messageId: intent.messageId,
+      shadowedSeqs: [...intent.shadowedSeqs],
+    })
+    const target = this.log[targetSeq]
+    if (message.role === 'user') {
+      this.append('user/message', message, intent.surfaceIntent)
+    } else if (target?.type === 'assistant/message') {
+      this.append('assistant/message', {
+        turn: target.data.turn,
+        step: target.data.step,
+        message,
+      }, intent.surfaceIntent)
+    } else {
+      throw new Error(`message/edit target seq ${targetSeq} has no assistant step metadata`)
+    }
+    return edit
   }
 
   /** Cached fold of the request-header events — see {@link requestHeader}. */

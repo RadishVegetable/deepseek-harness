@@ -123,6 +123,15 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Owns isolated per-session replay folds; pressure consumers share immutable revisioned measurements.',
   },
   {
+    key: 'tavernAssets',
+    pkg: 'tavern-host',
+    title: 'Tavern roleplay asset and session-selection service',
+    mode: 'seam',
+    consumers: ['client-ui-tavern'],
+    companions: ['tavern-assets', 'tavern-compat', 'tavern-context'],
+    note: 'Host persistence and Remote operations own imported Character Cards, World Info selection, and the session-log-backed persona/context projection; the browser package owns the selection view.',
+  },
+  {
     key: 'toolResultPruner',
     pkg: 'compaction-tool-result-pruner',
     title: 'Model-free tool-result pruning',

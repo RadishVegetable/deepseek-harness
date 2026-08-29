@@ -1743,6 +1743,138 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'tavernAssets',
+    summary: 'Host Cordis service exposing Tavern asset operations through Typert Remote.',
+    description: 'Host Cordis service exposing Tavern asset operations through Typert Remote.',
+    methods: [
+      {
+        signature: 'readonly host: TavernAssetHost',
+        description: 'Host facade used by the Remote methods and startup restore path.',
+        parameters: [],
+      },
+      {
+        signature: '@Remote(\'listCharacters\') remoteListCharacters(): readonly CharacterAsset[]',
+        description: 'List all imported Character Cards.',
+        parameters: [],
+        returns: 'Detached Character Card snapshots.',
+      },
+      {
+        signature: '@Remote(\'listWorldInfo\') remoteListWorldInfo(): readonly WorldInfoAsset[]',
+        description: 'List all imported World Info assets.',
+        parameters: [],
+        returns: 'Detached World Info snapshots.',
+      },
+      {
+        signature: '@Remote(\'importCharacter\') async remoteImportCharacter(input: string, options?: TavernImportOptions): Promise<CharacterAsset>',
+        description: 'Import one Character Card JSON document and return its detached asset.',
+        parameters: [{ name: 'input', description: 'Character Card JSON text.' }, { name: 'options', description: 'Optional stable ID and source metadata.' }],
+        returns: 'The persisted detached Character Card asset.',
+      },
+      {
+        signature: '@Remote(\'importWorldInfo\') async remoteImportWorldInfo(input: string, options?: TavernImportOptions): Promise<WorldInfoAsset>',
+        description: 'Import one standalone World Info JSON document and return its detached asset.',
+        parameters: [{ name: 'input', description: 'World Info JSON text.' }, { name: 'options', description: 'Optional stable ID and source metadata.' }],
+        returns: 'The persisted detached World Info asset.',
+      },
+      {
+        signature: '@Remote(\'updateCharacter\') async remoteUpdateCharacter(input: string, options: TavernUpdateOptions): Promise<CharacterAsset>',
+        description: 'Replace one persisted Character Card under its existing ID.',
+        parameters: [{ name: 'input', description: 'Character Card JSON text.' }, { name: 'options', description: 'Existing asset ID and optional source metadata.' }],
+        returns: 'The persisted replacement asset.',
+      },
+      {
+        signature: '@Remote(\'updateWorldInfo\') async remoteUpdateWorldInfo(input: string, options: TavernUpdateOptions): Promise<WorldInfoAsset>',
+        description: 'Replace one persisted World Info asset under its existing ID.',
+        parameters: [{ name: 'input', description: 'World Info JSON text.' }, { name: 'options', description: 'Existing asset ID and optional source metadata.' }],
+        returns: 'The persisted replacement asset.',
+      },
+      {
+        signature: '@Remote(\'exportCharacter\') remoteExportCharacter(id: import(\'@deepseek-ai/dsh-tavern-assets/types\').AssetId): string',
+        description: 'Export one persisted Character Card as JSON.',
+        parameters: [{ name: 'id', description: 'Character asset ID.' }],
+        returns: 'A compact JSON Character Card document.',
+      },
+      {
+        signature: '@Remote(\'exportWorldInfo\') remoteExportWorldInfo(id: import(\'@deepseek-ai/dsh-tavern-assets/types\').AssetId): string',
+        description: 'Export one persisted World Info asset as JSON.',
+        parameters: [{ name: 'id', description: 'World Info asset ID.' }],
+        returns: 'A compact JSON World Info document.',
+      },
+      {
+        signature: '@Remote(\'select\') remoteSelect(selection: AssetSelection): PromptAssetBaseline',
+        description: 'Resolve selected assets into a source-tracked prompt baseline.',
+        parameters: [{ name: 'selection', description: 'Asset IDs requested by the caller.' }],
+        returns: 'The selected prompt baseline.',
+      },
+      {
+        signature: '@Remote(\'selectForSession\') remoteSelectForSession(agent: Agent, selection: AssetSelection): TavernSessionSelection',
+        description: 'Select assets for a live session and append the complete baseline to its log.',
+        parameters: [{ name: 'agent', description: 'Session owner receiving the selection event.' }, { name: 'selection', description: 'Asset IDs requested for the session.' }],
+        returns: 'The detached durable session selection.',
+      },
+      {
+        signature: '@Remote(\'inspectSession\') remoteInspectSession(agent: Agent): TavernSessionSelection | null',
+        description: 'Read the latest durable asset selection for a live session.',
+        parameters: [{ name: 'agent', description: 'Session owner whose log is inspected.' }],
+        returns: 'The latest selection, or null when none is recorded.',
+      },
+      {
+        signature: '@Remote(\'editMessage\') remoteEditMessage(agent: Agent, input: TavernMessageEditInput): TavernMessageEditResult',
+        description: 'Replace one direct user message and invalidate its stale continuation.',
+        parameters: [{ name: 'agent', description: 'Session owner receiving the edit transaction.' }, { name: 'input', description: 'Target event sequence and replacement text.' }],
+        returns: 'The accepted target sequence.',
+      },
+      {
+        signature: '@Remote(\'inspectSelection\') remoteInspectSelection(selection: AssetSelection): TavernSelectionInspection',
+        description: 'Inspect selected assets and their source-tracked prompt baseline.',
+        parameters: [{ name: 'selection', description: 'Asset IDs to inspect.' }],
+        returns: 'Detached assets and the exact baseline produced by the registry.',
+      },
+      {
+        signature: '@Remote(\'listMemory\') remoteListMemory(agent: Agent): readonly import(\'./types.ts\').TavernMemoryEntry[]',
+        description: 'List enabled durable memory entries for a session.',
+        parameters: [{ name: 'agent', description: 'Session owner whose log is inspected.' }],
+        returns: 'Detached enabled Memory entries in log order.',
+      },
+      {
+        signature: '@Remote(\'remember\') remoteRemember(agent: Agent, input: import(\'./types.ts\').TavernMemoryInput): import(\'./types.ts\').TavernMemoryEntry',
+        description: 'Append or replace one durable memory entry for a session.',
+        parameters: [{ name: 'agent', description: 'Session owner receiving the Memory event.' }, { name: 'input', description: 'Memory text and optional stable fields.' }],
+        returns: 'The detached Memory entry written to the Session log.',
+      },
+      {
+        signature: '@Remote(\'inspectStoryState\') remoteInspectStoryState(agent: Agent): import(\'./types.ts\').TavernStoryStateInspection',
+        description: 'Read canonical story state and its source records for inspection.',
+        parameters: [{ name: 'agent', description: 'Session owner whose log is inspected.' }],
+        returns: 'The projected Story State and source records.',
+      },
+      {
+        signature: '@Remote(\'inspectSwipe\') remoteInspectSwipe(agent: Agent): import(\'./types.ts\').TavernSwipeInspection',
+        description: 'Read retained assistant candidates for the current session lineage.',
+        parameters: [{ name: 'agent', description: 'Session owner whose log is inspected.' }],
+        returns: 'Candidate groups and projection diagnostics.',
+      },
+      {
+        signature: '@Remote(\'selectSwipe\') remoteSelectSwipe(agent: Agent, input: import(\'./types.ts\').TavernSwipeSelectionInput): import(\'./types.ts\').TavernSwipeInspection',
+        description: 'Append a user-authorized current-candidate selection.',
+        parameters: [{ name: 'agent', description: 'Session owner receiving the selection event.' }, { name: 'input', description: 'Candidate group and candidate IDs to select.' }],
+        returns: 'Candidate groups after the selection is projected.',
+      },
+      {
+        signature: '@Remote(\'regenerate\') async remoteRegenerate(agent: Agent, input: TavernRegenerateInput): Promise<TavernRegenerateResult>',
+        description: 'Fork before one completed turn, retain its selected assistant candidate, and run the original user message on the child for a fresh response. The returned child has completed its first turn and passed a persistence barrier, so callers can inspect or reload it immediately.',
+        parameters: [{ name: 'agent', description: 'Source session owner.' }, { name: 'input', description: 'Candidate group and candidate to retain in the child.' }],
+        returns: 'The child session created for regeneration.',
+      },
+      {
+        signature: '@Remote(\'setStoryState\') remoteSetStoryState(agent: Agent, change: StoryStateChange): import(\'./types.ts\').TavernStoryStateInspection',
+        description: 'Append one user-authorized canonical story-state change.',
+        parameters: [{ name: 'agent', description: 'Session owner receiving the Story State event.' }, { name: 'change', description: 'Canonical location or time change to append.' }],
+        returns: 'Story State after the change is projected.',
+      },
+    ],
+  },
+  {
     key: 'terminals',
     summary: 'In-process registry for replaceable PTY backends and exact-Agent sessions.',
     description: 'In-process registry for replaceable PTY backends and exact-Agent sessions.',
@@ -2708,6 +2840,26 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface AssembledSection {\n    name: string;\n    text: string;\n}',
   },
   {
+    name: 'AssetId',
+    declaration: 'export type AssetId = Branded<\'TavernAssetId\'>;',
+  },
+  {
+    name: 'AssetRegistry',
+    declaration: 'export class AssetRegistry {\n    register(asset: TavernAsset): () => void;\n    replace(asset: TavernAsset): () => void;\n    getCharacter(id: AssetId): CharacterAsset | undefined;\n    getWorldInfo(id: AssetId): WorldInfoAsset | undefined;\n    listCharacters(): readonly CharacterAsset[];\n    listWorldInfo(): readonly WorldInfoAsset[];\n    select(selection: AssetSelection): PromptAssetBaseline;\n}',
+  },
+  {
+    name: 'AssetSelection',
+    declaration: 'export interface AssetSelection {\n    readonly characterId: AssetId | null;\n    readonly worldInfoIds: readonly AssetId[];\n}',
+  },
+  {
+    name: 'AssetSourceReference',
+    declaration: 'export interface AssetSourceReference {\n    readonly kind: string;\n    readonly locator: string;\n    readonly mediaType: string | null;\n    readonly digest: string | null;\n}',
+  },
+  {
+    name: 'AssetVersion',
+    declaration: 'export interface AssetVersion {\n    readonly format: string;\n    readonly revision: number;\n}',
+  },
+  {
     name: 'AssistantMessage',
     declaration: 'export interface AssistantMessage extends Message {\n    readonly role: \'assistant\';\n    readonly source: ModelMessageSource;\n}',
   },
@@ -2742,6 +2894,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'CancelOptions',
     declaration: 'export interface CancelOptions {\n    keepInbox?: boolean | undefined;\n}',
+  },
+  {
+    name: 'CharacterAsset',
+    declaration: 'export interface CharacterAsset {\n    readonly kind: \'character\';\n    readonly id: AssetId;\n    readonly name: string;\n    readonly version: AssetVersion;\n    readonly sourceReferences: readonly AssetSourceReference[];\n    readonly sourceData: JsonObject;\n    readonly description: string;\n    readonly personality: string;\n    readonly scenario: string;\n    readonly firstMessage: string;\n    readonly creatorNotes: string;\n    readonly messageExamples: string;\n    readonly alternateGreetings: readonly string[];\n    readonly systemPrompt: string;\n    readonly postHistoryInstructions: string;\n    readonly extensions: JsonObject;\n}',
+  },
+  {
+    name: 'CharacterPromptField',
+    declaration: 'export type CharacterPromptField = \'description\' | \'personality\' | \'scenario\' | \'first-message\' | \'alternate-greeting\' | \'creator-notes\' | \'message-examples\' | \'system-prompt\' | \'post-history-instructions\';',
   },
   {
     name: 'ClientResponse',
@@ -3232,6 +3392,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type JobStatus = \'running\' | \'stopping\' | \'completed\' | \'killed\' | \'failed\';',
   },
   {
+    name: 'JsonInput',
+    declaration: 'export type JsonInput = string | JsonObject;',
+  },
+  {
     name: 'JsonSchemaNode',
     declaration: 'export interface JsonSchemaNode {\n    type?: JsonSchemaType;\n    oneOf?: JsonSchemaNode[];\n    properties?: Record<string, JsonSchemaNode>;\n    required?: string[];\n    additionalProperties?: boolean;\n    items?: JsonSchemaNode;\n    enum?: JsonSchemaScalar[];\n    const?: JsonSchemaScalar;\n    description?: string;\n    title?: string;\n    default?: JsonValue;\n    examples?: JsonValue;\n}',
   },
@@ -3242,10 +3406,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'JsonSchemaType',
     declaration: 'export type JsonSchemaType = \'object\' | \'array\' | \'string\' | \'number\' | \'integer\' | \'boolean\' | \'null\';',
-  },
-  {
-    name: 'JsonValue',
-    declaration: 'export type JsonValue = null | boolean | number | string | JsonValue[] | {\n    [key: string]: JsonValue;\n};',
   },
   {
     name: 'KnobState',
@@ -3544,12 +3704,28 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface PromptAssembly {\n    sections: AssembledSection[];\n    contexts: AssembledContext[];\n    tools: ToolSchema[];\n    variables: Record<string, string | undefined>;\n}',
   },
   {
+    name: 'PromptAssetBaseline',
+    declaration: 'export interface PromptAssetBaseline {\n    readonly selection: AssetSelection;\n    readonly references: readonly PromptAssetReference[];\n    readonly characterSections: readonly PromptCharacterSection[];\n    readonly worldInfoEntries: readonly PromptWorldInfoEntry[];\n}',
+  },
+  {
+    name: 'PromptAssetReference',
+    declaration: 'export interface PromptAssetReference {\n    readonly kind: TavernAssetKind;\n    readonly assetId: AssetId;\n    readonly version: AssetVersion;\n}',
+  },
+  {
+    name: 'PromptCharacterSection',
+    declaration: 'export interface PromptCharacterSection {\n    readonly id: string;\n    readonly field: CharacterPromptField;\n    readonly text: string;\n    readonly sourceAssetId: AssetId;\n}',
+  },
+  {
     name: 'PromptContext',
     declaration: 'export interface PromptContext {\n    readonly name: string;\n    readonly order: number;\n    readonly text: string | ((context: AssembleContext) => string);\n}',
   },
   {
     name: 'PromptSection',
     declaration: 'export interface PromptSection {\n    readonly name: string;\n    readonly order: number;\n    readonly text: string | ((context: AssembleContext) => string);\n    readonly complete?: boolean;\n}',
+  },
+  {
+    name: 'PromptWorldInfoEntry',
+    declaration: 'export interface PromptWorldInfoEntry {\n    readonly id: AssetId;\n    readonly sourceAssetId: AssetId;\n    readonly keys: readonly string[];\n    readonly secondaryKeys: readonly string[];\n    readonly selective: boolean;\n    readonly constant: boolean;\n    readonly useRegex: boolean;\n    readonly matchWholeWords: boolean;\n    readonly caseSensitive: boolean;\n    readonly useProbability: boolean;\n    readonly content: string;\n    readonly enabled: boolean;\n    readonly scanDepth: number | null;\n    readonly tokenBudget: number | null;\n    readonly recursiveScanning: boolean;\n    readonly position: WorldInfoPosition;\n    readonly depth: number;\n    readonly order: number;\n    readonly recursive: boolean;\n    readonly probability: number;\n    readonly group: string | null;\n    readonly sticky: number | null;\n    readonly cooldown: number | null;\n}',
   },
   {
     name: 'ProviderRequestId',
@@ -3741,7 +3917,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'SessionEventMap',
-    declaration: 'export interface SessionEventMap {\n    \'turn/start\': {\n        turn: number;\n    };\n    \'turn/end\': {\n        turn: number;\n        reason: TurnEndReason;\n    };\n    \'step/start\': {\n        turn: number;\n        step: number;\n    };\n    \'step/end\': {\n        turn: number;\n        step: number;\n    };\n    \'user/message\': UserMessage;\n    \'assistant/chunk\': {\n        turn: number;\n        step: number;\n        chunk: StreamChunk;\n    };\n    \'assistant/message\': {\n        turn: number;\n        step: number;\n        message: AssistantMessage;\n        usage?: TokenUsage;\n    };\n    \'tool/call\': {\n        turn: number;\n        step: number;\n        callId: CallId;\n        name: string;\n        arguments: string;\n    };\n    \'tool/result\': {\n        turn: number;\n        step: number;\n        message: ToolResultMessage;\n        error?: {\n            name: string;\n            code: string;\n        };\n        meta?: JsonValue;\n    };\n    \'todo/write\': {\n        todos: TodoItem[];\n    };\n    \'request/header\': {\n        header: EpochHeader;\n        reason: RequestHeaderReason;\n    };\n    \'request/context\': RequestContext;\n    \'session/end-seed\': Record<string, never>;\n}',
+    declaration: 'export interface SessionEventMap {\n    \'turn/start\': {\n        turn: number;\n    };\n    \'turn/end\': {\n        turn: number;\n        reason: TurnEndReason;\n    };\n    \'step/start\': {\n        turn: number;\n        step: number;\n    };\n    \'step/end\': {\n        turn: number;\n        step: number;\n    };\n    \'user/message\': UserMessage;\n    \'assistant/chunk\': {\n        turn: number;\n        step: number;\n        chunk: StreamChunk;\n    };\n    \'assistant/message\': {\n        turn: number;\n        step: number;\n        message: AssistantMessage;\n        usage?: TokenUsage;\n    };\n    \'tool/call\': {\n        turn: number;\n        step: number;\n        callId: CallId;\n        name: string;\n        arguments: string;\n    };\n    \'tool/result\': {\n        turn: number;\n        step: number;\n        message: ToolResultMessage;\n        error?: {\n            name: string;\n            code: string;\n        };\n        meta?: JsonValue;\n    };\n    \'message/edit\': {\n        targetSeq: number;\n        messageId: string;\n        shadowedSeqs: number[];\n    };\n    \'todo/write\': {\n        todos: TodoItem[];\n    };\n    \'request/header\': {\n        header: EpochHeader;\n        reason: RequestHeaderReason;\n    };\n    \'request/context\': RequestContext;\n    \'session/end-seed\': Record<string, never>;\n}',
   },
   {
     name: 'SessionEventMetadataFilter',
@@ -4072,6 +4248,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface SkillViewOptions extends SkillLookupOptions {\n    readonly scope?: ScopeKey | undefined;\n}',
   },
   {
+    name: 'SourceEventId',
+    declaration: 'export type SourceEventId = string & {\n    readonly [SourceEventIdBrand]: \'SourceEventId\';\n};',
+  },
+  {
     name: 'SpillLocator',
     declaration: 'export type SpillLocator = Branded<\'SpillLocator\'>;',
   },
@@ -4098,6 +4278,78 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'StoredImageAttachment',
     declaration: 'export interface StoredImageAttachment {\n    ref: ImageAttachmentRef;\n    data: Uint8Array;\n}',
+  },
+  {
+    name: 'StoryBranchId',
+    declaration: 'export type StoryBranchId = string & {\n    readonly [StoryBranchIdBrand]: \'StoryBranchId\';\n};',
+  },
+  {
+    name: 'StoryCultivation',
+    declaration: 'export interface StoryCultivation {\n    readonly subjectId: StoryEntityId;\n    readonly realm: string;\n    readonly stage?: string;\n    readonly level?: number;\n    readonly progress?: number;\n    readonly extensions: JsonObject;\n}',
+  },
+  {
+    name: 'StoryEntityId',
+    declaration: 'export type StoryEntityId = string & {\n    readonly [StoryEntityIdBrand]: \'StoryEntityId\';\n};',
+  },
+  {
+    name: 'StoryHealth',
+    declaration: 'export interface StoryHealth {\n    readonly subjectId: StoryEntityId;\n    readonly status: string;\n    readonly severity?: number;\n    readonly extensions: JsonObject;\n}',
+  },
+  {
+    name: 'StoryInventoryItem',
+    declaration: 'export interface StoryInventoryItem {\n    readonly id: StoryEntityId;\n    readonly name: string;\n    readonly quantity: number;\n    readonly unit?: string;\n    readonly ownerId?: StoryEntityId;\n    readonly extensions: JsonObject;\n}',
+  },
+  {
+    name: 'StoryLocation',
+    declaration: 'export interface StoryLocation {\n    readonly id: StoryEntityId;\n    readonly name: string;\n    readonly description?: string;\n    readonly extensions: JsonObject;\n}',
+  },
+  {
+    name: 'StoryOath',
+    declaration: 'export interface StoryOath {\n    readonly id: StoryEntityId;\n    readonly text: string;\n    readonly subjectId?: StoryEntityId;\n    readonly status: \'active\' | \'fulfilled\' | \'broken\';\n    readonly extensions: JsonObject;\n}',
+  },
+  {
+    name: 'StoryRelationship',
+    declaration: 'export interface StoryRelationship {\n    readonly subjectId: StoryEntityId;\n    readonly targetId: StoryEntityId;\n    readonly phase?: string;\n    readonly affinity?: number;\n    readonly trust?: number;\n    readonly extensions: JsonObject;\n}',
+  },
+  {
+    name: 'StoryState',
+    declaration: 'export interface StoryState {\n    readonly version: 1;\n    readonly branchId: StoryBranchId;\n    readonly location: StoryLocation | null;\n    readonly time: StoryTime | null;\n    readonly inventory: readonly StoryInventoryItem[];\n    readonly health: readonly StoryHealth[];\n    readonly relationships: readonly StoryRelationship[];\n    readonly cultivation: readonly StoryCultivation[];\n    readonly activeOaths: readonly StoryOath[];\n    readonly extensions: JsonObject;\n}',
+  },
+  {
+    name: 'StoryStateAuthority',
+    declaration: 'export interface StoryStateAuthority {\n    readonly kind: StoryStateAuthorityKind;\n    readonly actorId?: StoryEntityId;\n    readonly extensions: JsonObject;\n}',
+  },
+  {
+    name: 'StoryStateAuthorityKind',
+    declaration: 'export type StoryStateAuthorityKind = \'user\' | \'gm\' | \'authored-asset\' | \'observed\' | \'model-candidate\';',
+  },
+  {
+    name: 'StoryStateChange',
+    declaration: 'export type StoryStateChange = {\n    readonly kind: \'location.set\';\n    readonly location: StoryLocation;\n    readonly extensions: JsonObject;\n} | {\n    readonly kind: \'location.clear\';\n    readonly extensions: JsonObject;\n} | {\n    readonly kind: \'time.set\';\n    readonly time: StoryTime;\n    readonly extensions: JsonObject;\n} | {\n    readonly kind: \'time.clear\';\n    readonly extensions: JsonObject;\n} | {\n    readonly kind: \'inventory.upsert\';\n    readonly item: StoryInventoryItem;\n    readonly extensions: JsonObject;\n} | {\n    readonly kind: \'inventory.remove\';\n    readonly itemId: StoryEntityId;\n    readonly extensions: JsonObject;\n} | {\n    readonly kind: \'health.upsert\';\n    readonly health: StoryHealth;\n    readonly extensions: JsonObject;\n} | {\n    readonly kind: \'health.remove\';\n    readonly subjectId: StoryEntityId;\n    readonly extensions: JsonObject;\n} | {\n    readonly kind: \'relationship.upsert\';\n    readonly relationship: StoryRelationship;\n    readonly extensions: JsonObject;\n} | {\n    readonly kind: \'relationship.remove\';\n    readonly subjectId: StoryEntityId;\n    readonly targetId: StoryEntityId;\n    readonly extensions: JsonObject;\n} | {\n    readonly kind: \'cultivation.upsert\';\n    readonly cultivation: StoryCultivation;\n    readonly extensions: JsonObject;\n} | {\n    readonly kind: \'cultivation.remove\';\n    readonly subjectId: StoryEntityId;\n    readonly extensions: JsonObject;\n} | {\n    readonly kind: \'oath.upsert\';\n    readonly oath: StoryOath;\n    readonly  /* …truncated — full shape in source */',
+  },
+  {
+    name: 'StoryStateChangeRecord',
+    declaration: 'export interface StoryStateChangeRecord {\n    readonly sourceEventId: SourceEventId;\n    readonly branchId: StoryBranchId;\n    readonly sequence: number;\n    readonly validity: StoryStateRecordValidity;\n    readonly authority: StoryStateAuthority;\n    readonly change: StoryStateChange;\n    readonly extensions: JsonObject;\n}',
+  },
+  {
+    name: 'StoryStateProjection',
+    declaration: 'export interface StoryStateProjection {\n    readonly branchId: StoryBranchId;\n    readonly state: StoryState;\n    readonly appliedRecords: readonly StoryStateChangeRecord[];\n    readonly rejectedRecords: readonly StoryStateChangeRecord[];\n    readonly issues: readonly StoryStateProjectionIssue[];\n}',
+  },
+  {
+    name: 'StoryStateProjectionIssue',
+    declaration: 'export interface StoryStateProjectionIssue {\n    readonly code: StoryStateProjectionIssueCode;\n    readonly message: string;\n    readonly sourceEventId?: SourceEventId;\n    readonly branchId?: StoryBranchId;\n}',
+  },
+  {
+    name: 'StoryStateProjectionIssueCode',
+    declaration: 'export type StoryStateProjectionIssueCode = \'invalid-branch-selection\' | \'invalid-record\' | \'invalid-sequence\' | \'duplicate-source-event\' | \'stale-branch\' | \'invalid-validity\' | \'insufficient-authority\' | \'invalid-update\';',
+  },
+  {
+    name: 'StoryStateRecordValidity',
+    declaration: 'export type StoryStateRecordValidity = {\n    readonly status: \'valid\';\n    readonly extensions: JsonObject;\n} | {\n    readonly status: \'invalid\';\n    readonly reason: string;\n    readonly supersededBy?: SourceEventId;\n    readonly extensions: JsonObject;\n};',
+  },
+  {
+    name: 'StoryTime',
+    declaration: 'export interface StoryTime {\n    readonly value: string;\n    readonly calendar?: string;\n    readonly timezone?: string;\n    readonly extensions: JsonObject;\n}',
   },
   {
     name: 'StreamChunk',
@@ -4250,6 +4502,86 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'TableValueOf',
     declaration: 'export type TableValueOf<S extends DomainSpec, N extends keyof S[\'tables\']> = S[\'tables\'][N] extends DomainTableSpec<string, infer V> ? V : never;',
+  },
+  {
+    name: 'TavernAsset',
+    declaration: 'export type TavernAsset = CharacterAsset | WorldInfoAsset;',
+  },
+  {
+    name: 'TavernAssetHost',
+    declaration: 'export class TavernAssetHost {\n    readonly registry: AssetRegistry;\n    constructor(registry = new AssetRegistry());\n    listCharacters(): readonly CharacterAsset[];\n    listWorldInfo(): readonly WorldInfoAsset[];\n    importCharacter(input: JsonInput, options: TavernImportOptions = {}): TavernImportResult<CharacterAsset>;\n    updateCharacter(input: JsonInput, options: TavernUpdateOptions): TavernImportResult<CharacterAsset>;\n    importWorldInfo(input: JsonInput, options: TavernImportOptions = {}): TavernImportResult<WorldInfoAsset>;\n    updateWorldInfo(input: JsonInput, options: TavernUpdateOptions): TavernImportResult<WorldInfoAsset>;\n    select(selection: AssetSelection): PromptAssetBaseline;\n    inspectSelection(selection: AssetSelection): TavernSelectionInspection;\n    exportCharacter(id: import(\'@deepseek-ai/dsh-tavern-assets/types\').AssetId): string;\n    exportWorldInfo(id: import(\'@deepseek-ai/dsh-tavern-assets/types\').AssetId): string;\n}',
+  },
+  {
+    name: 'TavernAssetKind',
+    declaration: 'export type TavernAssetKind = \'character\' | \'world-info\';',
+  },
+  {
+    name: 'TavernImportOptions',
+    declaration: 'export interface TavernImportOptions {\n    readonly id?: string;\n    readonly source?: TavernImportSource;\n}',
+  },
+  {
+    name: 'TavernImportResult',
+    declaration: 'export interface TavernImportResult<T extends TavernAsset> {\n    readonly asset: T;\n    readonly dispose: () => void;\n}',
+  },
+  {
+    name: 'TavernImportSource',
+    declaration: 'export interface TavernImportSource {\n    readonly kind: string;\n    readonly locator: string;\n    readonly mediaType?: string | null;\n    readonly digest?: string | null;\n}',
+  },
+  {
+    name: 'TavernMemoryEntry',
+    declaration: 'export interface TavernMemoryEntry {\n    readonly id: string;\n    readonly text: string;\n    readonly level: \'pinned\' | \'persistent\' | \'scene\';\n    readonly enabled: boolean;\n    readonly label: string | null;\n}',
+  },
+  {
+    name: 'TavernMemoryInput',
+    declaration: 'export interface TavernMemoryInput {\n    readonly id?: string;\n    readonly text: string;\n    readonly level?: TavernMemoryEntry[\'level\'];\n    readonly label?: string | null;\n}',
+  },
+  {
+    name: 'TavernMessageEditInput',
+    declaration: 'export interface TavernMessageEditInput {\n    readonly targetSeq: number;\n    readonly text: string;\n}',
+  },
+  {
+    name: 'TavernMessageEditResult',
+    declaration: 'export interface TavernMessageEditResult {\n    readonly targetSeq: number;\n}',
+  },
+  {
+    name: 'TavernRegenerateInput',
+    declaration: 'export interface TavernRegenerateInput {\n    readonly groupId: string;\n    readonly candidateId: string;\n}',
+  },
+  {
+    name: 'TavernRegenerateResult',
+    declaration: 'export interface TavernRegenerateResult {\n    readonly sessionId: import(\'@deepseek-ai/dsh-session/types\').SessionId;\n}',
+  },
+  {
+    name: 'TavernSelectionInspection',
+    declaration: 'export interface TavernSelectionInspection {\n    readonly selection: AssetSelection;\n    readonly baseline: PromptAssetBaseline;\n    readonly character: CharacterAsset | null;\n    readonly worldInfo: readonly WorldInfoAsset[];\n}',
+  },
+  {
+    name: 'TavernSessionSelection',
+    declaration: 'export interface TavernSessionSelection {\n    readonly selection: AssetSelection;\n    readonly baseline: PromptAssetBaseline;\n    readonly characterName: string | null;\n    readonly worldInfoNames: readonly string[];\n}',
+  },
+  {
+    name: 'TavernStoryStateInspection',
+    declaration: 'export interface TavernStoryStateInspection {\n    readonly projection: StoryStateProjection;\n    readonly records: readonly StoryStateChangeRecord[];\n}',
+  },
+  {
+    name: 'TavernSwipeCandidate',
+    declaration: 'export interface TavernSwipeCandidate {\n    readonly candidateId: string;\n    readonly origin: \'initial\' | \'swipe\' | \'regenerate\';\n    readonly text: string;\n}',
+  },
+  {
+    name: 'TavernSwipeGroup',
+    declaration: 'export interface TavernSwipeGroup {\n    readonly groupId: string;\n    readonly currentCandidateId: string | null;\n    readonly candidates: readonly TavernSwipeCandidate[];\n}',
+  },
+  {
+    name: 'TavernSwipeInspection',
+    declaration: 'export interface TavernSwipeInspection {\n    readonly groups: readonly TavernSwipeGroup[];\n    readonly issues: readonly {\n        readonly code: string;\n        readonly message: string;\n    }[];\n}',
+  },
+  {
+    name: 'TavernSwipeSelectionInput',
+    declaration: 'export interface TavernSwipeSelectionInput {\n    readonly groupId: string;\n    readonly candidateId: string;\n}',
+  },
+  {
+    name: 'TavernUpdateOptions',
+    declaration: 'export interface TavernUpdateOptions {\n    readonly id: string;\n    readonly source?: TavernImportSource;\n}',
   },
   {
     name: 'TerminalBackend',
@@ -4654,6 +4986,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'WorkflowStopReason',
     declaration: 'export type WorkflowStopReason = \'completed\' | \'cancelled\' | \'error\';',
+  },
+  {
+    name: 'WorldInfoAsset',
+    declaration: 'export interface WorldInfoAsset {\n    readonly kind: \'world-info\';\n    readonly id: AssetId;\n    readonly name: string;\n    readonly version: AssetVersion;\n    readonly sourceReferences: readonly AssetSourceReference[];\n    readonly sourceData: JsonObject;\n    readonly scanDepth: number | null;\n    readonly tokenBudget: number | null;\n    readonly recursiveScanning: boolean;\n    readonly entries: readonly WorldInfoEntry[];\n    readonly extensions: JsonObject;\n}',
+  },
+  {
+    name: 'WorldInfoEntry',
+    declaration: 'export interface WorldInfoEntry {\n    readonly id: AssetId;\n    readonly keys: readonly string[];\n    readonly secondaryKeys: readonly string[];\n    readonly selective?: boolean;\n    readonly constant?: boolean;\n    readonly useRegex?: boolean;\n    readonly matchWholeWords?: boolean;\n    readonly caseSensitive?: boolean;\n    readonly useProbability?: boolean;\n    readonly content: string;\n    readonly enabled: boolean;\n    readonly position: WorldInfoPosition;\n    readonly depth: number;\n    readonly order: number;\n    readonly recursive: boolean;\n    readonly probability: number;\n    readonly group: string | null;\n    readonly sticky: number | null;\n    readonly cooldown: number | null;\n    readonly extensions: JsonObject;\n}',
+  },
+  {
+    name: 'WorldInfoPosition',
+    declaration: 'export type WorldInfoPosition = \'before-character\' | \'after-character\' | \'before-history\' | \'after-history\' | \'at-depth\';',
   },
 ]
 

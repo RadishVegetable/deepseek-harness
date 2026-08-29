@@ -1,0 +1,39 @@
+{
+  "spec": "chara_card_v3",
+  "spec_version": "3.0",
+  "data": {
+    "name": "Yes, My Liege",
+    "description": "A kingdom in danger.",
+    "personality": "",
+    "scenario": "Florin needs a ruler.",
+    "first_mes": "What is your command, my liege?",
+    "mes_example": "<START>\n{{char}}: The court waits.",
+    "creator_notes": "Imported from a V3 card.",
+    "system_prompt": "",
+    "post_history_instructions": "",
+    "alternate_greetings": ["The council is assembled."],
+    "tags": ["Fantasy", "TAVERN"],
+    "creator": "fixture",
+    "character_version": "1",
+    "character_book": {
+      "name": "Embedded Book",
+      "entries": [
+        {
+          "id": 7,
+          "keys": ["Florin"],
+          "secondary_keys": [],
+          "content": "Florin is a kingdom.",
+          "enabled": true,
+          "constant": false,
+          "selective": false,
+          "position": "before_char",
+          "insertion_order": 10,
+          "probability": 100,
+          "unknown_entry_field": "preserve me"
+        }
+      ]
+    },
+    "unknown_data_field": {"keep": true}
+  },
+  "top_level_unknown": "preserve me"
+}

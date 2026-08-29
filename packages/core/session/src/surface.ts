@@ -9,7 +9,7 @@
  */
 
 import type { Message } from '@deepseek-ai/dsh-llm'
-import type { SessionEvent, SurfaceEvent, SurfaceEventType, SurfaceOp } from './types.ts'
+import type { SessionEvent, SurfaceEvent, SurfaceEventType, SurfaceIntent, SurfaceOp } from './types.ts'
 
 /** Runtime counterpart of the message-producing event union. */
 const SURFACE_EVENT_TYPES = new Set<string>([
@@ -64,7 +64,9 @@ export function isAppendSurfaceEvent(
 export function isReplacementSurfaceEvent(
   event: SessionEvent,
 ): event is SurfaceEvent & { surfaceOp: Extract<SurfaceOp, { op: 'replace' }> } {
-  return isSurfaceEvent(event) && event.surfaceOp !== 'append'
+  return isSurfaceEvent(event)
+    && event.surfaceOp !== 'append'
+    && event.surfaceOp.op === 'replace'
 }
 
 /**
@@ -141,10 +143,28 @@ export interface SessionSurface {
   readonly replaceGeneration: number
 }
 
+/** Canonical metadata for the two log entries that make up a message edit. */
+export interface SurfaceEditIntent {
+  /** Original message event sequence selected by the caller. */
+  readonly targetSeq: number
+  /** Stable message identity retained by the replacement. */
+  readonly messageId: string
+  /** Role of the replacement message event. */
+  readonly role: 'user' | 'assistant'
+  /** Nodes invalidated by the edit transaction. */
+  readonly shadowedSeqs: readonly number[]
+  /** Standard surface metadata for the replacement message. */
+  readonly surfaceIntent: SurfaceIntent
+}
+
 /** Mutable state shared by complete and incremental folds. */
 interface SurfaceFoldState {
   nodes: number[]
   replaceGeneration: number
+  /** Earlier current nodes restored when a replacement is invalidated. */
+  replacementChildren: Map<number, number[]>
+  /** An edit transaction awaiting its adjacent replacement message. */
+  pendingEdit: SurfaceEditPlan | undefined
 }
 
 /** A validated replacement transition that has not mutated fold state yet. */
@@ -154,14 +174,42 @@ interface SurfaceReplacePlan extends SurfaceFoldReplacement {
   endIdx: number
 }
 
+/** One historical edit that restores a folded range and truncates its tail. */
+interface SurfaceEditPlan {
+  kind: 'edit'
+  seq: number
+  targetSeq: number
+  messageId: string
+  role: 'user' | 'assistant'
+  containerStart: number
+  prefixNodes: number[]
+  shadowedSeqs: number[]
+}
+
+/** A standard replacement carrying the second half of an edit transaction. */
+interface SurfaceEditReplacementPlan extends SurfaceFoldReplacement {
+  kind: 'edit-replace'
+  startIdx: number
+  endIdx: number
+  targetSeq: number
+  prefixNodes: number[]
+}
+
 /** One validated surface transition that has not mutated fold state yet. */
 type SurfacePlan =
   | { kind: 'append'; seq: number }
   | SurfaceReplacePlan
+  | SurfaceEditPlan
+  | SurfaceEditReplacementPlan
 
 /** Create an empty surface fold state. */
 function createFoldState(): SurfaceFoldState {
-  return { nodes: [], replaceGeneration: 0 }
+  return {
+    nodes: [],
+    replaceGeneration: 0,
+    replacementChildren: new Map(),
+    pendingEdit: undefined,
+  }
 }
 
 /** Whether a runtime value is a non-negative safe event sequence. */
@@ -265,6 +313,135 @@ function replacementRange(
   }
 }
 
+/** Expand only the replacement path that contains one hidden target. */
+function expandNodeForTarget(
+  state: SurfaceFoldState,
+  node: number,
+  targetSeq: number,
+): { nodes: number[]; targetIndex: number | undefined } {
+  if (node === targetSeq) return { nodes: [node], targetIndex: 0 }
+  const children = state.replacementChildren.get(node)
+  if (children === undefined) return { nodes: [node], targetIndex: undefined }
+  const nodes: number[] = []
+  let targetIndex: number | undefined
+  for (const child of children) {
+    const expanded = expandNodeForTarget(state, child, targetSeq)
+    if (targetIndex === undefined && expanded.targetIndex !== undefined) {
+      targetIndex = nodes.length + expanded.targetIndex
+    }
+    nodes.push(...expanded.nodes)
+  }
+  return { nodes, targetIndex }
+}
+
+/** Plan one edit against the current surface and its replacement ancestry. */
+function editSurfaceLayout(
+  state: SurfaceFoldState,
+  targetSeq: number,
+): { targetIndex: number; containerStart: number; prefixNodes: number[]; shadowedSeqs: number[] } {
+  const rebuilt: number[] = []
+  let targetIndex: number | undefined
+  let containerIndex = -1
+  for (const [nodeIndex, node] of state.nodes.entries()) {
+    const expanded = expandNodeForTarget(state, node, targetSeq)
+    if (targetIndex === undefined && expanded.targetIndex !== undefined) {
+      containerIndex = nodeIndex
+      targetIndex = rebuilt.length + expanded.targetIndex
+    }
+    rebuilt.push(...expanded.nodes)
+  }
+  if (targetIndex === undefined || containerIndex < 0) {
+    throw new Error(`message/edit target seq ${targetSeq} is not in the current surface or a folded range`)
+  }
+  const containerStart = state.nodes[containerIndex]
+  if (containerStart === undefined) {
+    throw new Error(`message/edit target seq ${targetSeq} has no containing surface node`)
+  }
+  const currentRemoved = state.nodes.slice(containerIndex)
+  const shadowedSeqs = [...new Set([
+    targetSeq,
+    ...currentRemoved,
+    ...rebuilt.slice(targetIndex + 1),
+  ])]
+  return {
+    targetIndex,
+    containerStart,
+    prefixNodes: rebuilt.slice(0, targetIndex),
+    shadowedSeqs,
+  }
+}
+
+/** Plan the log-only first half of one historical message edit. */
+function planMessageEdit(
+  state: SurfaceFoldState,
+  edit: SessionEvent<'message/edit'>,
+  expectedSeq: number,
+  events: readonly SessionEvent[],
+  baseSeq: number,
+): SurfaceEditPlan {
+  if (state.pendingEdit !== undefined) {
+    throw new Error(`message/edit at seq ${edit.seq} arrived before the previous edit was replaced`)
+  }
+  const target = events[edit.data.targetSeq - baseSeq]
+  if (target === undefined || target.seq !== edit.data.targetSeq || target.seq >= expectedSeq) {
+    throw new Error(`message/edit target seq ${edit.data.targetSeq} is not an earlier event`)
+  }
+  const targetMessage = deriveEventMessage(target)
+  if (targetMessage === null || (targetMessage.role !== 'user' && targetMessage.role !== 'assistant')) {
+    throw new Error(`message/edit target seq ${edit.data.targetSeq} is not an editable message`)
+  }
+  if (edit.data.messageId !== targetMessage.id) {
+    throw new Error(`message/edit target seq ${edit.data.targetSeq} must retain its message identity and role`)
+  }
+
+  const layout = editSurfaceLayout(state, edit.data.targetSeq)
+  const { prefixNodes, shadowedSeqs } = layout
+  if (edit.data.shadowedSeqs.length !== shadowedSeqs.length
+    || edit.data.shadowedSeqs.some((seq, index) => seq !== shadowedSeqs[index])) {
+    throw new Error(`message/edit target seq ${edit.data.targetSeq} has stale shadowedSeqs`)
+  }
+  return {
+    kind: 'edit',
+    seq: edit.seq,
+    targetSeq: edit.data.targetSeq,
+    messageId: targetMessage.id,
+    role: targetMessage.role,
+    containerStart: layout.containerStart,
+    prefixNodes,
+    shadowedSeqs,
+  }
+}
+
+/** Plan the standard message replacement paired with a pending edit marker. */
+function planEditedReplacement(
+  state: SurfaceFoldState,
+  event: SurfaceEvent,
+  op: Extract<SurfaceOp, { op: 'replace' }>,
+): SurfaceEditReplacementPlan {
+  const pending = state.pendingEdit
+  if (pending === undefined) throw new Error('internal surface error: missing pending edit')
+  const replacementMessage = event.type === 'user/message' ? event.data : event.data.message
+  if (event.type !== `${pending.role}/message` || replacementMessage.id !== pending.messageId) {
+    throw new Error(`message/edit at seq ${pending.seq} must be followed by a ${pending.role}/message replacement with id ${pending.messageId}`)
+  }
+  if (op.start !== pending.containerStart || op.end !== pending.containerStart) {
+    throw new Error(`message/edit target seq ${pending.targetSeq} has an invalid replacement range`)
+  }
+  const range = replacementRange(state, op)
+  assertProvenance(event, pending.shadowedSeqs)
+  return {
+    kind: 'edit-replace',
+    seq: event.seq,
+    start: op.start,
+    end: op.end,
+    startIdx: range.startIdx,
+    endIdx: range.endIdx,
+    targetSeq: pending.targetSeq,
+    prefixNodes: pending.prefixNodes,
+    shadowedSeqs: range.shadowedSeqs,
+  }
+}
+
 /**
  * Deep structural equality over the session-event JSON value domain
  * (null/boolean/number/string, arrays, plain objects). Replaces
@@ -329,6 +506,19 @@ function planSurfaceEvent(
     throw new Error(`session event seq ${event.seq} is not contiguous; expected ${expectedSeq}`)
   }
   const surfaceOp = surfaceOpOf(event)
+  if (event.type === 'message/edit') {
+    if (surfaceOp !== undefined) throw new Error('message/edit cannot carry surface metadata')
+    return planMessageEdit(state, event, expectedSeq, events, baseSeq)
+  }
+  if (state.pendingEdit !== undefined) {
+    if (surfaceOp === undefined || surfaceOp === 'append' || surfaceOp.op !== 'replace') {
+      throw new Error(`message/edit at seq ${state.pendingEdit.seq} must be followed by its replacement message`)
+    }
+    if (event.type !== 'user/message' && event.type !== 'assistant/message') {
+      throw new Error(`message/edit at seq ${state.pendingEdit.seq} must be followed by a user/message or assistant/message`)
+    }
+    return planEditedReplacement(state, event as SurfaceEvent, surfaceOp)
+  }
   if (surfaceOp === undefined) return
   if (surfaceOp === 'append') {
     assertProvenance(event, [])
@@ -368,8 +558,18 @@ function applySurfacePlan(
   } else if (plan?.kind === 'replace') {
     state.nodes.splice(plan.startIdx, plan.endIdx - plan.startIdx + 1, plan.seq)
     state.replaceGeneration += 1
+    state.replacementChildren.set(plan.seq, [...plan.shadowedSeqs])
+  } else if (plan?.kind === 'edit') {
+    state.pendingEdit = plan
+  } else if (plan?.kind === 'edit-replace') {
+    state.nodes = [...plan.prefixNodes, plan.seq]
+    state.replaceGeneration += 1
+    // The prefix remains as independent current nodes. Keeping it in the
+    // replacement ancestry as well would expand it twice on a later edit.
+    state.replacementChildren.set(plan.seq, [plan.targetSeq])
+    state.pendingEdit = undefined
   }
-  if (plan?.kind !== 'replace') return
+  if (plan?.kind !== 'replace' && plan?.kind !== 'edit-replace') return
   return {
     seq: plan.seq,
     start: plan.start,
@@ -390,6 +590,9 @@ export function foldSurface(events: readonly SessionEvent[]): SurfaceFoldResult 
   for (const [index, event] of events.entries()) {
     const replacement = applySurfaceEvent(state, event, index, events, 0)
     if (replacement !== undefined) replacements.push(replacement)
+  }
+  if (state.pendingEdit !== undefined) {
+    throw new Error(`message/edit at seq ${state.pendingEdit.seq} has no replacement message`)
   }
   return { nodes: [...state.nodes], replacements }
 }
@@ -431,13 +634,47 @@ export class SurfaceManager implements SessionSurface {
   /** Monotonic count of folded positional replacements. */
   get replaceGeneration(): number {
     if (this._lastProcessedSeq < this.baseSeq + this.log.length - 1) this._processDelta()
+    if (this._state.pendingEdit !== undefined) {
+      throw new Error(`message/edit at seq ${this._state.pendingEdit.seq} has no replacement message`)
+    }
     return this._state.replaceGeneration
   }
 
   /** Surface event sequences in model-visible order. */
   get nodes(): readonly number[] {
     if (this._lastProcessedSeq < this.baseSeq + this.log.length - 1) this._processDelta()
+    if (this._state.pendingEdit !== undefined) {
+      throw new Error(`message/edit at seq ${this._state.pendingEdit.seq} has no replacement message`)
+    }
     return this._state.nodes
+  }
+
+  /**
+   * Build the canonical metadata for both entries in one historical edit.
+   * @param targetSeq - earlier message event being edited.
+   * @returns transaction data and the standard replacement intent.
+   */
+  editIntent(targetSeq: number): SurfaceEditIntent {
+    if (this._lastProcessedSeq < this.baseSeq + this.log.length - 1) this._processDelta()
+    if (this._state.pendingEdit !== undefined) {
+      throw new Error(`message/edit at seq ${this._state.pendingEdit.seq} has no replacement message`)
+    }
+    const target = this.log[targetSeq - this.baseSeq]
+    const targetMessage = target === undefined ? null : deriveEventMessage(target)
+    if (targetMessage === null || (targetMessage.role !== 'user' && targetMessage.role !== 'assistant')) {
+      throw new Error(`message/edit target seq ${targetSeq} is not an editable message`)
+    }
+    const layout = editSurfaceLayout(this._state, targetSeq)
+    return {
+      targetSeq,
+      messageId: targetMessage.id,
+      role: targetMessage.role,
+      shadowedSeqs: layout.shadowedSeqs,
+      surfaceIntent: {
+        surfaceOp: { op: 'replace', start: layout.containerStart, end: layout.containerStart },
+        sourceEventSeqs: layout.shadowedSeqs,
+      },
+    }
   }
 
   /** Fold events appended since the previous access. */

@@ -295,6 +295,8 @@ export interface SessionEventMap {
     error?: { name: string; code: string }
     meta?: JsonValue
   }
+  /** Opens an append-only historical edit transaction; the next message event carries its replacement. */
+  'message/edit': { targetSeq: number; messageId: string; shadowedSeqs: number[] }
   /** Whole-list snapshot; latest write wins on replay. Log-only UI state; never derived history. */
   'todo/write': { todos: TodoItem[] }
   /**

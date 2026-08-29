@@ -1,0 +1,6 @@
+# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
+# side as of the last confirmed-consistent state. Both languages carry equal authority;
+# after editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-24-tavern-roleplay-surface.md
+2026-08-24-tavern-roleplay-surface.md: 20d08e93336fee96b10b8d13d47f530cda4af482
+2026-08-24-tavern-roleplay-surface.zh.md: 433467b8f04823f14f52fab45cb1bbfc0bca6375

@@ -86,6 +86,8 @@ interface SessionEventMap {
     error?: { name: string; code: string }
     meta?: JsonValue
   }
+  /** Opens an append-only historical edit transaction; the next message event carries its replacement. */
+  'message/edit': { targetSeq: number; messageId: string; shadowedSeqs: number[] }
   /** Whole-list snapshot; latest write wins on replay. Log-only UI state; never derived history. */
   'todo/write': { todos: TodoItem[] }
   /**
@@ -475,6 +477,19 @@ declare class Session {
     ...opts: T extends SurfaceEventType ? [opts: SurfaceIntent] : []
   ): SessionEvent<T>;
   /**
+   * Append a historical message edit and its standard surface replacement.
+   *
+   * The first event records the transaction and the second event retains the
+   * original message identity while replacing the visible continuation.
+   * @param targetSeq - earlier user or assistant message event sequence.
+   * @param message - edited message with the target's identity and role.
+   * @returns the durable edit transaction event.
+   */
+  editMessage(
+    targetSeq: number,
+    message: UserMessage | AssistantMessage,
+  ): SessionEvent<'message/edit'>;
+  /**
    * The {@link EpochHeader} in force after the log's last header event — the
    * header the NEXT request will be compared against — or undefined before
    * the first `request/header` snapshot. The live, incrementally-maintained
@@ -746,7 +761,7 @@ fork(source: SessionForkSource, boundary?: number, childSessionId?: SessionId): 
 
 Types: [CreateSessionOptions](persistence.md) · [PrepareSessionOptions](persistence.md) · [SessionId](core.md)
 
-Source: [`packages/core/session/src/index.ts:792`](../../packages/core/session/src/index.ts)
+Source: [`packages/core/session/src/index.ts:854`](../../packages/core/session/src/index.ts)
 
 <a id="session-events"></a>
 

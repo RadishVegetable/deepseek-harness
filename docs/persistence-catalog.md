@@ -90,7 +90,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }[T]
 ```
 
-Sources: [`packages/core/session/src/types.ts:336`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:343`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:372`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:404`](../packages/core/session/src/types.ts)
+Sources: [`packages/core/session/src/types.ts:338`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:345`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:374`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:406`](../packages/core/session/src/types.ts)
 
 ## Events
 
@@ -494,6 +494,19 @@ Source: [`packages/llm/llm-retry/src/types.ts:9`](../packages/llm/llm-retry/src/
 
 Source: [`packages/llm/llm-retry/src/types.ts:11`](../packages/llm/llm-retry/src/types.ts)
 
+### `message/*`
+
+<a id="messageedit--log-only"></a>
+
+#### `message/edit` — log-only
+
+```ts persistence-catalog
+/** Opens an append-only historical edit transaction; the next message event carries its replacement. */
+'message/edit': { targetSeq: number; messageId: string; shadowedSeqs: number[] }
+```
+
+Source: [`packages/core/session/src/types.ts:299`](../packages/core/session/src/types.ts)
+
 ### `permission/*`
 
 <a id="permissionpreset--log-only"></a>
@@ -543,7 +556,7 @@ Source: [`packages/plan/plan-mode/src/index.ts:53`](../packages/plan/plan-mode/s
 'request/context': RequestContext
 ```
 
-Source: [`packages/core/session/src/types.ts:309`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:311`](../packages/core/session/src/types.ts)
 
 <a id="requestheader--log-only"></a>
 
@@ -557,7 +570,7 @@ Source: [`packages/core/session/src/types.ts:309`](../packages/core/session/src/
 'request/header': { header: EpochHeader; reason: RequestHeaderReason }
 ```
 
-Source: [`packages/core/session/src/types.ts:304`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:306`](../packages/core/session/src/types.ts)
 
 ### `sandbox/*`
 
@@ -632,7 +645,7 @@ Source: [`packages/schedule/schedule/src/types.ts:219`](../packages/schedule/sch
 'session/end-seed': Record<string, never>
 ```
 
-Source: [`packages/core/session/src/types.ts:332`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:334`](../packages/core/session/src/types.ts)
 
 <a id="sessiontitle--log-only"></a>
 
@@ -706,6 +719,74 @@ Source: [`packages/core/session/src/types.ts:254`](../packages/core/session/src/
 
 Source: [`packages/subagent/subagent/src/descriptor.ts:37`](../packages/subagent/subagent/src/descriptor.ts)
 
+### `tavern/*`
+
+<a id="tavernassets-selected--log-only"></a>
+
+#### `tavern/assets-selected` — log-only
+
+```ts persistence-catalog
+/** The character and World Info baseline selected for later turns. */
+'tavern/assets-selected': TavernAssetsSelectedEvent
+```
+
+Source: [`packages/tavern/host/src/session.ts:46`](../packages/tavern/host/src/session.ts)
+
+<a id="taverncontext-activation--log-only"></a>
+
+#### `tavern/context-activation` — log-only
+
+```ts persistence-catalog
+/** The World Info compiler decision used for one model-visible snapshot. */
+'tavern/context-activation': TavernContextActivationEvent
+```
+
+Source: [`packages/tavern/host/src/session.ts:48`](../packages/tavern/host/src/session.ts)
+
+<a id="taverngreeting--log-only"></a>
+
+#### `tavern/greeting` — log-only
+
+```ts persistence-catalog
+/** The first Character Card greeting displayed and projected into later prompts. */
+'tavern/greeting': TavernGreetingEvent
+```
+
+Source: [`packages/tavern/host/src/types.ts:50`](../packages/tavern/host/src/types.ts)
+
+<a id="tavernmemory--log-only"></a>
+
+#### `tavern/memory` — log-only
+
+```ts persistence-catalog
+/** A durable memory entry update used by the Tavern context projection. */
+'tavern/memory': import('./types.ts').TavernMemoryEvent
+```
+
+Source: [`packages/tavern/host/src/session.ts:50`](../packages/tavern/host/src/session.ts)
+
+<a id="tavernstory-state--log-only"></a>
+
+#### `tavern/story-state` — log-only
+
+```ts persistence-catalog
+/** A durable canonical story-state change used by the Tavern context projection. */
+'tavern/story-state': TavernStoryStateEvent
+```
+
+Source: [`packages/tavern/host/src/session.ts:52`](../packages/tavern/host/src/session.ts)
+
+<a id="tavernswipe--log-only"></a>
+
+#### `tavern/swipe` — log-only
+
+```ts persistence-catalog
+/** A durable assistant candidate addition or user selection. */
+'tavern/swipe': TavernSwipeEvent
+```
+
+Source: [`packages/tavern/host/src/types.ts:208`](../packages/tavern/host/src/types.ts)
+
 ### `todo/*`
 
 <a id="todowrite--log-only"></a>
@@ -719,7 +800,7 @@ Source: [`packages/subagent/subagent/src/descriptor.ts:37`](../packages/subagent
 
 Types: [TodoItem](subsystems/session.md)
 
-Source: [`packages/core/session/src/types.ts:299`](../packages/core/session/src/types.ts)
+Source: [`packages/core/session/src/types.ts:301`](../packages/core/session/src/types.ts)
 
 ### `tool/*`
 

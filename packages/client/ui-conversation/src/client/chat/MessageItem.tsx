@@ -10,6 +10,7 @@ import type {
 } from '@deepseek-ai/dsh-client-runtime/client'
 import { JsonBlock, MessageText, StateDot } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ChatNodeViewProps, ChatViewSlotProps } from '../contract/slots.ts'
+import type { PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-slots'
 import { ImageGallery, type ImageLoader } from '@deepseek-ai/dsh-client-ui-attachment'
 import { messageImageLabels } from '../image-labels.ts'
 import { CompactionItem } from './CompactionItem.tsx'
@@ -235,9 +236,39 @@ export function PendingSteeringBubble({ content, loadImage, t }: {
 }
 
 /** User and admitted-steering keyed Chat renderer. */
+type UserMessageNodeProps =
+  (ChatNodeViewProps<'user'> | ChatNodeViewProps<'steering'>)
+  & PropsRenderSlots<'conversation.chat.user-actions'>
+
 export const UserMessageNodeView = memo(function UserMessageNodeView({
+  node, loadImage, t, renderSlot,
+}: UserMessageNodeProps) {
+  const data = node.data
+  return (
+    <UserStyleBubble
+      content={data.content}
+      imageLoader={loadImage}
+      t={t}
+      actions={text => (
+        <MessageIconActions
+          text={text}
+          time={data.time}
+          clock="start"
+          className={css.actions}
+          extraActions={node.kind === 'user' && text.trim().length > 0
+            ? renderSlot('conversation.chat.user-actions', { seq: data.seq, text })
+            : undefined}
+          t={t}
+        />
+      )}
+    />
+  )
+})
+
+/** Render an admitted steering message without the durable user-action slot. */
+export const SteeringMessageNodeView = memo(function SteeringMessageNodeView({
   node, loadImage, t,
-}: ChatNodeViewProps<'user' | 'steering'>) {
+}: ChatNodeViewProps<'steering'>) {
   const data = node.data
   return (
     <UserStyleBubble

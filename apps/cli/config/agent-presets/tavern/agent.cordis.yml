@@ -1,0 +1,15 @@
+# The Tavern profile supplies its per-session persona and World Info context
+# through the host-side Tavern composition. The preset stays a tool policy.
+
+- id: persona
+  name: '@deepseek-ai/dsh-persona'
+  config:
+    text: >-
+      You are a roleplay agent in a Tavern session. Stay in character, treat
+      the user's messages as story input, preserve established facts, and
+      write vivid but concise replies.
+    complete: true
+    includeRuntimeContext: true
+
+- id: tool-ask-user
+  name: '@deepseek-ai/dsh-tool-ask-user'

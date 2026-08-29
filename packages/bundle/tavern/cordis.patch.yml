@@ -1,0 +1,21 @@
+# Optional overlay for `dsh web --patch packages/bundle/tavern/cordis.patch.yml`.
+# The host bind is configurable for containers; the default is reachable from
+# outside the container while the ordinary Web profile remains loopback-only.
+- id: webserver
+  inject: [webStartup]
+  config:
+    host: !!js ctx.webStartup.host ?? process.env.DSH_WEB_HOST ?? '0.0.0.0'
+    port: !!js ctx.webStartup.port ?? Number(process.env.DSH_WEB_PORT ?? 3080)
+
+# Tavern sessions use the dedicated roleplay preset. It is complete-prompt and
+# intentionally contributes no coding tool rows.
+- id: agent-presets
+  config:
+    default: tavern
+
+- insert:
+    - id: tavern-assets
+      name: '@deepseek-ai/dsh-tavern-host'
+
+    - id: ui-tavern
+      name: '@deepseek-ai/dsh-client-ui-tavern'

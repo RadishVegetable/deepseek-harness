@@ -14,7 +14,7 @@ import type { ViewTab } from './contract/views.ts'
 import type {
   ApprovalWait, ChatNodeTurnDataInjected, ChatScrollPosition, ChatViewInjected, ComposerBarInjected,
   ComposerChainProps, ConversationInjected, ConversationSessionHeaderInjected, ConversationSessionInjected,
-  DetailsInjected,
+  ConversationChatView, DetailsInjected,
 } from './contract/slots.ts'
 import type { InputNotice } from './input/contract.ts'
 import { createChatStore } from './stores.ts'
@@ -130,6 +130,7 @@ export function apply(ctx: Context): void {
 
   // Apply-time construction keeps store identity bound to this fiber.
   const chatStore = createChatStore()
+  let defaultView: string | undefined
   const submissionPolicy = new ComposerSubmissionPolicy(
     ctx.settingsScope.bind<ConversationSettings>({ namespace: CONVERSATION_SETTINGS_NAMESPACE }),
   )
@@ -150,12 +151,63 @@ export function apply(ctx: Context): void {
   // persisted: a fresh page load keeps the open-jump-to-bottom default.
   const chatScrollPositions = new Map<SessionId, ChatScrollPosition>()
 
+  const chatView: ConversationChatView = {
+    store: chatStore,
+    setDefaultView: (viewId) => { defaultView = viewId },
+    component: ChatView,
+    inject: (sessionId, actions): ChatViewInjected => {
+      const conversation = concreteConversation(ctx)
+      const scoped = scopedConversation(sessions, sessionId)
+      return {
+        openDetails: (target) => {
+          actions.select(target)
+          layout.openDetails()
+        },
+        fileMentions: owner => ctx.get('chatFileMentions')?.forClosing(owner),
+        openFile: (path) => {
+          const cwd = sessions.list.getSnapshot().byId[sessionId]?.cwd
+          void workspaces.openPath(resolveWorkspacePath(cwd, path)).catch(() => {
+            // Host/OS open failures stay silent in the chat row; the native
+            // app surfaces its own error dialog when the path is unusable.
+          })
+        },
+        loadOlder: () => { void scoped.loadOlder() },
+        loadImage: attachment => conversation.resolveImage(sessionId, attachment),
+        // Unregistered 'trajectory' id is safe: the tab ring falls back to
+        // the first view, and the untouched inspect target stays inert.
+        inspectCall: (callId) => {
+          actions.setInspect({ callId })
+          actions.setView('trajectory')
+        },
+        chatScroll: {
+          save: (position) => {
+            if (position === null) chatScrollPositions.delete(sessionId)
+            else chatScrollPositions.set(sessionId, position)
+          },
+          read: () => chatScrollPositions.get(sessionId) ?? null,
+        },
+        forkAt: (seq) => {
+          sessions.fork({ sessionId, atSeq: seq, increaseTitle: true })
+            .then((childId) => { sessions.open(childId) })
+            .catch(() => {
+              // Fork or child-rename failure keeps the source view untouched.
+            })
+        },
+      }
+    },
+  }
+  ctx.provide('conversationChatView', chatView)
+
   const viewTabs = (): ViewTab[] => {
     const tabs: ViewTab[] = []
     for (const entry of slots.entries('conversation.view')) {
       /* v8 ignore next -- unreachable: list registration validates id at load. */
       if (entry.options.id === undefined) continue
-      tabs.push({ id: entry.options.id, label: resolveSlotLabel(entry.options.label) ?? entry.options.id })
+      tabs.push({
+        id: entry.options.id,
+        label: resolveSlotLabel(entry.options.label) ?? entry.options.id,
+        ...(entry.options.renderWhenBlank === true ? { renderWhenBlank: true } : {}),
+      })
     }
     return tabs
   }
@@ -240,12 +292,14 @@ export function apply(ctx: Context): void {
     name: 'conversation.session',
     children: {
       'conversation.view': { kind: 'list', scope: 'session' },
+      'conversation.chat.node': { kind: 'keyed', scope: 'session', inject: CHAT_NODE_INJECT },
     },
     store: chatStore,
     inject: (sessionId: SessionId, _actions: BoundActions<typeof chatStore>): ConversationSessionInjected => {
       const conversation = concreteConversation(ctx)
       return {
         views,
+        defaultView: () => defaultView,
         releaseSessionImages: (id) => { conversation.releaseSessionImages(id) },
         bindDraftMirror: write => inputHub.shell(sessionId).bindMirror(write),
       }
@@ -264,6 +318,7 @@ export function apply(ctx: Context): void {
     store: chatStore,
     inject: (): ConversationSessionHeaderInjected => ({
       views,
+      defaultView: () => defaultView,
       open: (id) => { sessions.open(id) },
     }),
   }, ConversationSessionHeader)
@@ -379,50 +434,8 @@ export function apply(ctx: Context): void {
     order: 0,
     label: () => t('view.chat'),
     locale: NS,
-    children: {
-      'conversation.chat.node': { kind: 'keyed', scope: 'session', inject: CHAT_NODE_INJECT },
-    },
-    store: chatStore,
-    inject: (sessionId: SessionId, actions: BoundActions<typeof chatStore>): ChatViewInjected => {
-      const conversation = concreteConversation(ctx)
-      const scoped = scopedConversation(sessions, sessionId)
-      return {
-        openDetails: (target) => {
-          actions.select(target)
-          layout.openDetails()
-        },
-        fileMentions: owner => ctx.get('chatFileMentions')?.forClosing(owner),
-        openFile: (path) => {
-          const cwd = sessions.list.getSnapshot().byId[sessionId]?.cwd
-          void workspaces.openPath(resolveWorkspacePath(cwd, path)).catch(() => {
-            // Host/OS open failures stay silent in the chat row; the native
-            // app surfaces its own error dialog when the path is unusable.
-          })
-        },
-        loadOlder: () => { void scoped.loadOlder() },
-        loadImage: attachment => conversation.resolveImage(sessionId, attachment),
-        // Unregistered 'trajectory' id is safe: the tab ring falls back to
-        // the first view, and the untouched inspect target stays inert.
-        inspectCall: (callId) => {
-          actions.setInspect({ callId })
-          actions.setView('trajectory')
-        },
-        chatScroll: {
-          save: (position) => {
-            if (position === null) chatScrollPositions.delete(sessionId)
-            else chatScrollPositions.set(sessionId, position)
-          },
-          read: () => chatScrollPositions.get(sessionId) ?? null,
-        },
-        forkAt: (seq) => {
-          sessions.fork({ sessionId, atSeq: seq, increaseTitle: true })
-            .then((childId) => { sessions.open(childId) })
-            .catch(() => {
-              // Fork or child-rename failure keeps the source view untouched.
-            })
-        },
-      }
-    },
+    store: chatView.store,
+    inject: chatView.inject,
   }, ChatView)
 
   // Session stats stick with the composer (composer.dock = stats-line family).

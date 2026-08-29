@@ -61,6 +61,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
      */
     'conversation': { kind: 'single'; scope: 'session-maybe'; owner: ConvOwnerProps }
     /**
+     * Tavern's full-screen root surface. AppFrame renders this before the
+     * conversation slot when the explicit Tavern marker is active.
+     */
+    'tavern': { kind: 'single'; scope: 'root'; owner: TavernSurfaceOwnerProps }
+    /**
      * The right details column, shown when the layout opens it. OCCUPIED by
      * ui-conversation's DetailsPanel, which declares the tool-details seat
      * inside it — registering here replaces the column and takes that seat
@@ -101,6 +106,9 @@ export interface SidebarOwnerProps {
 /** Conversation owner share: business state and actions belong to the registrant. */
 export interface ConvOwnerProps {}
 
+/** Tavern root owner share: the surface owns its navigation and chrome. */
+export interface TavernSurfaceOwnerProps {}
+
 /** Details owner share: empty — sessionId arrives as a framework-standard prop. */
 export interface DetailsOwnerProps {}
 
@@ -122,6 +130,7 @@ export function apply(ctx: ClientContext): void {
       children: {
         'sidebar': { kind: 'single', scope: 'root' },
         'conversation': { kind: 'single', scope: 'session-maybe' },
+        'tavern': { kind: 'single', scope: 'root' },
         'details': { kind: 'single', scope: 'session' },
         'shell.overlay': { kind: 'list', scope: 'root' },
       },

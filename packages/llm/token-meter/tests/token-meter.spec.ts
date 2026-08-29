@@ -435,6 +435,40 @@ describe('replay anchors and surface folds', () => {
     expect(measurement.surfaceTokens).toBe(0)
     expectSurfaceTotal(measurement)
   })
+
+  it('reprices an assistant edit after the original step has completed', () => {
+    const service = meter()
+    const session = Session.create(SessionId('assistant-edit-meter'))
+    session.append('step/start', { turn: 1, step: 1 })
+    appendHeader(session, header('deepseek-v4-flash'))
+    const assistant = session.append('assistant/message', {
+      turn: 1,
+      step: 1,
+      message: createMessage({
+        role: 'assistant',
+        content: [{ type: 'text', text: 'original answer' }],
+        source: { kind: 'model', provider: 'mock', model: 'deepseek-v4-flash' },
+      }),
+    }, { surfaceOp: 'append', sourceEventSeqs: [] })
+    session.append('step/end', { turn: 1, step: 1 })
+    const before = service.measure(session)
+
+    session.editMessage(assistant.seq, {
+      ...assistant.data.message,
+      content: [{ type: 'text', text: 'a substantially longer edited answer' }],
+    })
+
+    const after = service.measure(session)
+    const replacement = session.events.at(-1)
+    if (replacement?.type !== 'assistant/message') throw new Error('test replacement must be assistant/message')
+    expect(after.logRevision).toBe(session.events.length)
+    expect(after.nodes).toEqual([{
+      seq: replacement.seq,
+      tokens: service.estimateMessage(replacement.data.message),
+    }])
+    expect(after.surfaceTokens).toBeGreaterThan(before.surfaceTokens)
+    expectSurfaceTotal(after)
+  })
 })
 
 describe('malformed replay and listener lifecycle', () => {

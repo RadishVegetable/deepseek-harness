@@ -1,13 +1,13 @@
 import { memo, useMemo } from 'react'
 import { JsonBlock } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { ChatNodeOwnerProps, ChatViewSlotProps } from '../contract/slots.ts'
+import type { ChatNodeOwnerProps, ChatNodeSlotRenderer, ChatViewSlotProps } from '../contract/slots.ts'
 import type { ChatNode } from '../contract/chat-nodes.ts'
 import css from './ChatView.module.css'
 
 interface ChatNodeSeatProps extends ChatNodeOwnerProps {
   readonly nodeKey: string
   readonly useSession: ChatViewSlotProps['useSession']
-  readonly renderSlot: ChatViewSlotProps['renderSlot']
+  readonly renderSlot: ChatNodeSlotRenderer
   readonly t: ChatViewSlotProps['t']
 }
 

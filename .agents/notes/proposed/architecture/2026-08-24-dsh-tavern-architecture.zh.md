@@ -8,15 +8,19 @@ Status: proposed
 
 SillyTavern 是角色卡和 World Info 的重要兼容目标，但它的运行时会把作者设定、模型生成的记忆和聊天历史压缩成一次可变的 Prompt 组装。系统没有每个角色独立的知识视角，没有权威的结构化剧情状态，也没有由事件驱动、可重放的检索决策记录。因此长对话会重复事实、遗忘事实、暴露私密知识，并把大量无关内容重复消耗在每轮输入中。
 
-目标产品需要同时支持单角色直聊，以及 GM 在同一剧情中控制多个角色行动的场景。它必须兼容酒馆资源格式，作为 TypeScript dsh 组合运行在 Docker 中，提供可用的 Web 页面，并且在控制每次模型调用输入的同时，能显示实际发送给模型的完整上下文。所有模型可见内容都必须可以从 dsh Session 日志重建。
+目标产品需要使用同一条 GM 驱动的故事循环，同时支持聚焦关系故事和多个角色在同一剧情中行动的大世界设定。它必须兼容酒馆资源格式，作为 TypeScript dsh 组合运行在 Docker 中，提供可用的 Web 页面，并且在控制每次模型调用输入的同时，能显示实际发送给模型的完整上下文。所有模型可见内容都必须可以从 dsh Session 日志重建。
 
 ## Proposal
 
-构建可选的 dsh Tavern 组合。它复用 dsh 的 Session、Prompt、LLM、压缩、Web 和分支能力，增加酒馆专用的资源、剧情状态、记忆、上下文、编排和连续性插件。Tavern profile 只组合当前交互模式和资源需要的插件，不替换 dsh 核心，也不嵌入 SillyTavern 的 JavaScript 运行时。
+构建可选的 dsh Tavern 组合。它复用 dsh 的 Session、Prompt、LLM、压缩、Web 和分支能力，增加酒馆专用的资源、剧情状态、记忆、上下文、编排和连续性插件。Tavern profile 根据所选资源和 profile 策略组合所需插件，不替换 dsh 核心，也不嵌入 SillyTavern 的 JavaScript 运行时。
+
+下文描述的执行模式已由[已实现的 GM 驱动剧情段决策](../../implemented/architecture/2026-08-29-gm-led-story-segments.md)取代。本提案中较新决策没有重新定义的知识视图、上下文编译、资源兼容性和日志重放决策仍然有效。[已实现的 Tavern 分阶段交付决策](../../implemented/architecture/2026-08-29-tavern-staged-delivery.md)和 GM 决策重新定义了默认连续性模型：旅程专属的自然语言人物事实和世界事实取代固定的关系、物品或健康状态投影，成为下一阶段的实现目标。
+
+交付阶段由[已实现的 Tavern 分阶段交付决策](../../implemented/architecture/2026-08-29-tavern-staged-delivery.md)定义。本文描述的包拓扑和结构化运行时是目标架构；第一阶段可以只复用现有 Session 和普通自由文本聊天，不必挂载所有后续子系统。
 
 已有的[酒馆角色扮演界面提案](../feature/2026-08-24-tavern-roleplay-surface.md)继续负责功能级的 UI 和 swipe 方案；本记录负责它依赖的跨模块架构和知识模型。
 
-### 组合和运行模式
+### 组合和 GM 叙事循环
 
 ```text
 Tavern Web UI and API
@@ -24,31 +28,27 @@ Tavern Web UI and API
 Tavern profile and session-scoped composition
         |
 +-------+---------+----------+----------+----------+
-| assets | state  | memory   | context  | scene    |
-| ST    | story  | L0-L3    | compiler | planner  |
-| import| state  | views    | retrieval| scheduler|
+| assets | state  | memory   | context  | narrative |
+| ST    | story  | L0-L3    | compiler | GM loop   |
+| import| state  | views    | retrieval| segments  |
 +-------+---------+----------+----------+----------+
         |
 dsh Session log, projections, prompt surface, LLM, Web, storage
 ```
 
-系统提供三种运行模式：
+profile 提供一条 GM 叙事循环。一次玩家输入产生一次 GM 模型生成和一个剧情段。剧情段可以包含旁白、设定变化以及多个角色的行动或对白。这是一种伪群聊呈现，不是一组角色 Agent：运行时不会为每个角色分别调用模型，也不会在调用之间选择发言者。profile 可以按需启用规划或连续性处理，但它们不是面向玩家的独立交互模式。
 
-- `direct`：一个活跃角色处理用户当前回合，使用一次主模型调用。记忆提取和向量索引异步执行。
-- `single-scene`：仍然只有一个主要角色，但在场景转换、时间跳跃、重大状态变化或隐藏剧情控制时按需调用规划器。
-- `ensemble`：GM 规划器生成结构化场景节拍，只有实际行动的角色才接收独立的角色上下文调用。拥有不同私密知识的角色绝不会使用包含彼此秘密的同一个 Prompt 生成。
-
-默认模式是 `direct`。规划器采用 `on-demand` 策略，不会无条件增加一次模型调用。profile 可以显式启用或关闭每项能力；选择角色卡或 World Info 只选择资源和默认配置，不会隐式授予 shell、web、filesystem、skill 或 subagent 等无关工具。
+选择角色卡或 World Info 只选择资源和默认配置，不会隐式授予 shell、web、filesystem、skill 或 subagent 等无关工具。
 
 ### 领域模型
 
 系统分开保存五类信息：
 
-- **资源**：作者控制的输入，例如角色卡、Character Book、World Info 条目、preset 或导入的 PNG。
-- **正典**：用户或 GM 授权的剧情断言。正典不等于模型自动生成的记忆。
-- **剧情状态**：地点、时间、物品、修为境界、健康、关系阶段、当前誓言等结构化当前值。
-- **知识视图**：某个观察者可以使用的事实，包括信念、传闻、推断和错误信念。
-- **记忆**：基于来源事件构建的 L1、L2 或 L3 投影。记忆不是事实来源，Session 事件日志才是。
+- **资源**：作者控制的输入，例如角色卡、Character Book、World Info 条目、World Book、preset 或导入的 PNG。
+- **旅程材料**：由导入来源快照创建的旅程专属角色卡和世界书副本。
+- **事实**：`people[personId]` 或 `world` 下的一条自然语言连续性记录。事实可以描述关系、身份、物品、传闻、发现或其他剧情概念，不要求为它建立专门的产品字段。
+- **知识视图**：某个观察者可以使用的事实，包括信念、传闻、推断和错误信念。第一版只向模型提供一个 GM 视图；角色知识是叙事数据和投影元数据，不是角色 Agent 的独立请求。
+- **事件来源**：记录资源快照、剧情正文、事实操作、上下文决策和分支的 Session 事件。投影永远不是事实来源。
 
 L0-L3 保留记忆抽象层级，但不负责隔离：
 
@@ -72,7 +72,7 @@ provenance       source event ids and asset references
 
 同一个事件可以为不同观察者生成不同记忆。角色不知道秘密，不代表系统删除秘密，而是角色知识视图排除该秘密。这是叙事软隔离，不是安全隔离。
 
-角色卡是作者定义的初始基线，L3 是剧情发展后角色形成的长期认知。关系状态、物品、地点、健康、修为、时间和其他需要严格保持当前值的字段使用独立投影，因为向量检索不能可靠地强制这些字段的当前状态。
+角色卡和世界书是作者定义的基线。旅程专属事实行是连续性层。以后如果某些值需要精确的机器校验，可以增加固定投影作为可选扩展；它们不是默认叙事循环的必需部分，也不会取代自然语言事实记录。
 
 ### 剧情事件和模型可见性
 
@@ -86,19 +86,19 @@ Session 事件日志是唯一权威来源。Tavern 增加资源选择、场景�
 
 ### 上下文编译和检索
 
-上下文编译器为 GM、每个角色和公共旁白生成独立视图，并按以下顺序组装：
+上下文编译器为一次 GM 生成组装一个模型可见视图，并为玩家和诊断界面提供安全投影，顺序如下：
 
 ```text
 stable prefix
   system rules, asset baseline, stable setting, tool schemas
 dynamic suffix
-  current structured state
+  current Journey facts
   public scene state
   observer L3
   observer L2
   filtered and ranked L1
   recent visible events
-  current user input or actor beat
+  current player input
 ```
 
 检索必须先过滤，再执行语义排序：
@@ -106,7 +106,7 @@ dynamic suffix
 ```text
 observer and visibility filter
   -> validity and branch filter
-  -> structured state lookup
+  -> Journey fact projection
   -> keyword or FTS candidate lookup
   -> vector retrieval when needed
   -> rerank and deduplicate
@@ -115,21 +115,21 @@ observer and visibility filter
 
 World Info 激活保留酒馆的确定性规则，包括关键词、secondary keys、整词匹配、递归、深度、分组、概率、sticky、cooldown 和插入位置。向量检索可以扩展候选召回，但不能绕过可见性和有效性检查，也不能把候选自动提升为正典。
 
-编译器统一管理稳定资源、公共状态、观察者记忆、最近事件和输出预留的 token 预算。它不会把完整聊天记录或完整 World Info 集合复制到每个请求。稳定前缀的缓存键包含资源版本、观察者 ID、记忆投影版本、编译策略版本和工具 schema 版本。动态检索结果放在稳定前缀之后，以避免破坏可复用前缀。
+编译器统一管理稳定资源、公共状态、GM 记忆、最近事件和输出预留的 token 预算。它不会把完整聊天记录或完整 World Info 集合复制到每个请求。稳定前缀的缓存键包含资源版本、GM 上下文策略版本、记忆投影版本、编译策略版本和工具 schema 版本。动态检索结果放在稳定前缀之后，以避免破坏可复用前缀。
 
-在 ensemble 模式中，规划器可以读取完整 GM 视图，但每个角色调用只接收自己的节拍和知识视图。可见性相同且没有私密状态的角色可以使用节省成本的快速路径；只要角色上下文不同，就不能使用该路径。默认的成本控制方式是只选择活跃角色、使用紧凑状态投影、异步提取和按需规划，而不是在一个 Prompt 中放入所有角色的隐藏信息。
+第一版不会创建角色专属的模型请求。剧情段中的角色归属只是 transcript 渲染和状态投影使用的输出元数据。GM 上下文必须在会导致非预期泄露时排除玩家无权查看的信息；这是上下文策略问题，不是把一个回合拆成多个角色调用就能解决的问题。
 
 ### SillyTavern 兼容
 
-兼容层支持 Character Card V1/V2 JSON、PNG 内嵌卡片、V2 `character_book` 和独立 World Info JSON 的导入导出。它保留未知字段、原始条目顺序、源文本、关键词、secondary keys、插入位置、深度、递归、分组行为、概率、sticky、cooldown 和可往返导出的扩展数据。
+兼容层支持 Character Card V1/V2 JSON、PNG 内嵌卡片、V2 `character_book` 和独立 World Info JSON 的导入导出。SillyTavern 的 `World` 按可复用的 World Info/Lorebook 条目集合处理，可以附加到角色卡或旅程，但不会变成拥有角色栏和权威剧情状态的世界实体。关联的 `extensions.world` 是附属引用，不是另一种世界模型。兼容层保留未知字段、原始条目顺序、源文本、关键词、secondary keys、插入位置、深度、递归、分组行为、概率、sticky、cooldown 和可往返导出的扩展数据。
 
-导入器保存原始资源并生成标准化原生资源。原生模型可以使用实体关系图或树，但导入器保留原始扁平 World Info 条目，以便导出时保持兼容。静态资源不会被静默转换成 L3 记忆。
+导入器保存原始资源并生成标准化原生资源。原生模型可以为检索建立条目索引和设定引用，但不会把 Lorebook 变成拥有角色的实体图。导入器保留原始扁平 World Info 条目，以便导出时保持兼容。静态资源不会被静默转换成 L3 记忆。
 
 第一版会把任意 SillyTavern JavaScript 扩展、regex 脚本、远程服务钩子和 UI 专属行为保留为不执行的扩展数据。导出仍可保留这些字段，但 dsh 进程不会执行它们。无法满足语义的必需字段在导入时明确失败，未知的非执行元数据继续保留。
 
 ### UI、Docker 和可观测性
 
-Web 组合提供聊天、角色卡和 World Info 管理、场景控制、记忆查看、剧情状态查看、分支和 swipe 控制以及 Prompt Inspector。Inspector 显示 GM 或角色观察者、实际渲染段落、token 预算、缓存键、召回候选、带原因的过滤候选、来源事件和连续性警告。它必须明确区分发送给模型的内容和仅供调试的诊断数据。
+Web 组合提供聊天、角色卡和 World Info 管理、场景控制、记忆查看、剧情状态查看、分支和 swipe 控制以及 Prompt Inspector。Inspector 显示单次 GM 请求、实际渲染段落、token 预算、缓存键、召回候选、带原因的过滤候选、来源事件和连续性警告。它必须明确区分发送给模型的内容和仅供调试的诊断数据。
 
 Docker 镜像构建 TypeScript workspace，并在可配置的容器绑定地址上运行选定 profile。profile 必须显式启用容器绑定，不能依赖只适用于开发环境的 host 覆盖。持久化存储包括 Session 日志、导入资源、投影和索引；向量存储是可选的，可以从来源事件重建。
 
@@ -137,7 +137,7 @@ Docker 镜像构建 TypeScript workspace，并在可配置的容器绑定地址�
 
 角色卡、World Info、记忆和模型输出都是数据，不是系统指令。编译器把它们放入声明的 Prompt 段落，不允许导入文本改变系统策略或授予工具。工具组合由 profile 显式决定。
 
-错误配置和无效持久化数据必须明确失败。运行时降级也必须可观察：向量提供方不可用时回退到结构化和 FTS 检索；没有记忆结果时不能凭空创建记忆；请求超预算时使用配置的优先级裁剪；角色调用失败时按 profile 策略停止场景或生成带 GM 标记的降级旁白。连续性警告必须在自动修复或重试前记录。
+错误配置和无效持久化数据必须明确失败。运行时降级也必须可观察：向量提供方不可用时回退到结构化和 FTS 检索；没有记忆结果时不能凭空创建记忆；请求超预算时使用配置的优先级裁剪；GM 生成失败时按 profile 策略停止回合或生成带标记的降级旁白。连续性警告必须在自动修复或重试前记录。
 
 ### Package 归属
 
@@ -146,10 +146,10 @@ Docker 镜像构建 TypeScript workspace，并在可配置的容器绑定地址�
 ```text
 packages/tavern/compat        pure ST parsers, serializers, and asset preservation
 packages/tavern/assets        asset service and session asset selection
-packages/tavern/state         structured story-state definitions and projections
+packages/tavern/state         optional typed projections over Journey facts
 packages/tavern/memory        L0-L3 projections, observer views, and providers
 packages/tavern/context       activation, retrieval, budget, and prompt compiler
-packages/tavern/orchestration direct, single-scene, and ensemble consumers
+packages/tavern/orchestration GM narrative loop and Story segment consumers
 packages/tavern/continuity    validators, warnings, and repair policy
 packages/bundle/tavern        installable profile and plugin composition
 ```
@@ -166,23 +166,23 @@ packages/bundle/tavern        installable profile and plugin composition
 
 **把向量 RAG 作为剧情数据库。** 相似度检索无法强制当前地点、物品、死亡、修为境界、关系状态、分支有效性或权威等级。结构化投影和来源事件负责这些值，RAG 只负责召回候选文本。
 
-**每次回复都先调用 GM 规划器。** 这会增加单角色恋爱或修仙对话的 token 和延迟，却不能改善一个角色的普通回合。规划器按需调用，ensemble 只在角色知识视图不同且需要行动时支付独立角色调用成本。
+**每次回复都先调用规划器或角色 Agent。** 这会增加聚焦关系回合的 token 和延迟，而分开的角色调用也会让一段有因果关系的剧情更难连贯生成。第一版使用一次 GM 生成；只有明确接受额外成本的 profile 才启用可选规划。
 
-**把所有角色指令和私密记忆放入一个 Prompt。** 这减少了请求次数，但会把私密上下文暴露给同一个模型注意力，不能保证角色级知识隔离。只有可见性相同且不存在私密数据的角色才允许使用该快速路径。
+**在群聊中按角色分别调用模型。** 这会重复发送相同的 World Book、旅程和场景上下文，增加发言者调度，并把 token 消耗在协调上。一次 GM 生成可以在一个剧情段中标注多个角色块，同时保持因果顺序。
 
 ## Acceptance criteria
 
 1. dsh Tavern profile 从现有 dsh package 组合，并在显式配置的绑定地址上启动 Docker Web 页面。
-2. direct 模式不会无条件调用规划器；scene 和 ensemble 触发器按选择的策略调用规划器。
+2. 每次玩家输入产生一次 GM 生成和一个剧情段，该剧情段可以包含旁白以及多个角色的行动或对白；不需要角色专属调用。
 3. 同一个 Character Card V1/V2 或 World Info 资源往返导入导出时不丢失支持字段和未知元数据。
 4. 角色请求不能召回其 observer、visibility、branch、validity 或 authority 排除的记忆。
-5. 公开事件只有在记录后才对同一场景的后续角色可见；私密内心和 GM 计划不会进入其他角色视图。
+5. GM 请求及其接受的剧情段作为一个叙事回合记录；玩家无权查看的内容由 GM 上下文策略排除，角色归属不会创建另一个模型可见请求。
 6. canon、belief、rumor、inference 和 false-belief 始终可区分，并在修正和分支投影中保留来源事件。
-7. 地点、物品、健康、关系和修为状态使用结构化投影校验，而不是只依赖向量结果推断。
+7. 旅程专属人物和世界事实使用事实操作校验，并从选定分支投影；固定类型投影是可选扩展，而不是默认连续性存储。
 8. Prompt Inspector 可以重放精确的模型可见上下文，并显示 token、检索、缓存和连续性决策。
 9. Swipe、重新生成和历史编辑从选定分支投影记忆和剧情状态，不污染下游分支。
-10. 可运行的无密钥示例和 snapshot 覆盖单角色对话、恋爱关系变化、修为状态变化、单角色知晓秘密以及 ST 导入导出往返。
+10. 可运行的无密钥示例和 snapshot 覆盖聚焦关系回合、多角色剧情段、恋爱关系变化、修为状态变化以及 ST 导入导出往返。
 
 ## Risks
 
-观察者模型增加了领域复杂度，而且不是安全隔离。产品必须明确 GM、角色、旁白和界面查看者的语义。多个独立角色调用会增加延迟和输出成本，因此活跃角色选择、前缀缓存、紧凑投影和按需规划必须成为默认策略。第一版不会完整兼容酒馆扩展；可执行扩展必须移植为显式 dsh 插件。精确上下文快照会增加 Session 体积，因此压缩和投影存储必须在保留重放能力的同时允许索引重建。自动连续性修复可能改写用户刻意制造的戏剧内容，因此在 profile 显式启用修复之前，默认只警告并重试。
+观察者模型增加了领域复杂度，而且不是安全隔离。产品必须明确 GM、角色、玩家和界面查看者的语义。一次 GM 生成可能过长或发出互相矛盾的事实操作，因此需要输出预算、封套校验、事实 ID 和可恢复截断。第一版不会完整兼容酒馆扩展；可执行扩展必须移植为显式 dsh 插件。精确上下文快照会增加 Session 体积，因此压缩和投影存储必须在保留重放能力的同时允许索引重建。自动连续性更新可能改写用户刻意制造的戏剧内容，因此 Host 必须保留原始剧情并记录每个接受或拒绝的操作。

@@ -1,0 +1,76 @@
+:root {
+  --tavern-bg-void: #120e0a;
+  --tavern-bg-base: #1a1510;
+  --tavern-bg-surface: #221b14;
+  --tavern-bg-elevated: #2a2118;
+  --tavern-bg-hover: #33281c;
+  --tavern-wood: #4a3826;
+  --tavern-copper: #c99b64;
+  --tavern-copper-soft: #e3c391;
+  --tavern-copper-dim: #8a6d47;
+  --tavern-red: #c95a43;
+  --tavern-red-soft: #7c3b2d;
+  --tavern-teal: #57a89c;
+  --tavern-teal-soft: #2f5d57;
+  --tavern-text-1: #ece2d1;
+  --tavern-text-2: #c3b49c;
+  --tavern-text-3: #8d7e69;
+  --tavern-text-4: #5d5346;
+  --tavern-line: #2e261d;
+  --tavern-line-strong: #403428;
+  --tavern-font-story: "Source Han Serif SC", "Noto Serif SC", "Songti SC", "STSong", serif;
+  --tavern-font-ui: "PingFang SC", "Microsoft YaHei", "Noto Sans SC", system-ui, sans-serif;
+  --tavern-font-mono: ui-monospace, Consolas, monospace;
+  --tavern-shadow-1: 0 2px 8px rgb(0 0 0 / 18%);
+  --tavern-shadow-2: 0 8px 24px rgb(0 0 0 / 24%);
+  --tavern-shadow-3: 0 18px 42px rgb(0 0 0 / 36%);
+  --tavern-t-fast: 150ms;
+  --tavern-t-med: 280ms;
+  --tavern-t-slow: 450ms;
+}
+
+.tavernLegacyRoot {
+  color-scheme: dark;
+  --tavern-ink: var(--tavern-bg-void);
+  --tavern-walnut: var(--tavern-bg-base);
+  --tavern-panel: var(--tavern-bg-surface);
+  --tavern-panel-raised: var(--tavern-bg-elevated);
+  --tavern-line-soft: var(--tavern-line);
+  --tavern-gold: var(--tavern-copper);
+  --tavern-gold-bright: var(--tavern-copper-soft);
+  --tavern-parchment: var(--tavern-text-2);
+  --tavern-bone: var(--tavern-text-1);
+  --tavern-dim: var(--tavern-text-3);
+  --tavern-green: var(--tavern-teal);
+  background: var(--tavern-bg-void);
+  font-family: var(--tavern-font-ui);
+}
+
+.tavernLegacyRoot body {
+  background: var(--tavern-bg-void);
+  color: var(--tavern-text-1);
+}
+
+.tavernLegacyRoot body::before {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.035;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.7'/%3E%3C/svg%3E");
+  content: '';
+}
+
+.tavernLegacyRoot *,
+.tavernLegacyRoot *::before,
+.tavernLegacyRoot *::after {
+  box-sizing: border-box;
+}
+
+.tavernLegacyRoot button,
+.tavernLegacyRoot input,
+.tavernLegacyRoot textarea,
+.tavernLegacyRoot select {
+  font-family: var(--tavern-font-ui);
+}

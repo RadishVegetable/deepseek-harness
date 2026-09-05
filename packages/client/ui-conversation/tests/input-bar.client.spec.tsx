@@ -422,6 +422,15 @@ describe('image draft rail', () => {
 })
 
 describe('Enter semantics', () => {
+  it('uses roleplay copy on the Tavern surface', () => {
+    document.documentElement.dataset.dshSurface = 'tavern'
+    try {
+      expect(bench().textarea.placeholder).toBe('写下你的行动、对话或心声')
+    } finally {
+      delete document.documentElement.dataset.dshSurface
+    }
+  })
+
   it('advertises the empty-draft whole-queue steering gesture when it is available', () => {
     const { textarea } = bench({ running: true, queue: [row('q-1')], steerQueue: vi.fn() })
     expect(textarea.placeholder).toBe('Cmd/Ctrl+Enter 插话发送全部排队消息')

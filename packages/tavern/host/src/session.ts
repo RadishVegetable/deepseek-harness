@@ -19,20 +19,46 @@ import type {
   SwipeProjection,
   SwipeRecord,
 } from '@deepseek-ai/dsh-tavern-state/types'
-import type { TavernGreetingEvent, TavernMemoryEntry, TavernStoryStateEvent } from './types.ts'
+import { projectTavernJourneyAssets, resolveTavernFacts } from './facts.ts'
+import type {
+  TavernAssetsEditedEvent,
+  TavernJourneySelection,
+  TavernGreetingEvent,
+  TavernJourneyAssetProjection,
+  TavernSectionConfigEvent,
+  TavernSectionConfigInput,
+  TavernSectionConfigInspection,
+  TavernSectionConfigProjection,
+  TavernStoryStateEvent,
+} from './types.ts'
 
-/** Durable selection payload written before a Tavern prompt can change. */
+/** Durable asset references written before a Tavern prompt can change. */
 export interface TavernAssetsSelectedEvent {
   readonly selection: AssetSelection
-  readonly baseline: PromptAssetBaseline
-  readonly characterName: string | null
-  readonly worldInfoNames: readonly string[]
+  /**
+   * Legacy source snapshot fields are accepted only when replaying old logs.
+   * New selection events never persist these fields.
+   */
+  readonly baseline?: PromptAssetBaseline
+  readonly character?: import('@deepseek-ai/dsh-tavern-assets/types').CharacterAsset | null
+  readonly worldInfo?: readonly import('@deepseek-ai/dsh-tavern-assets/types').WorldInfoAsset[]
+  readonly characterName?: string | null
+  readonly worldInfoNames?: readonly string[]
+  /** Player identity supplied at Journey startup, when present. */
+  readonly playerIdentity?: string | null
 }
+
+/** Minimal selection event shared by the selected and edited event variants. */
+export type TavernSelectionEvent = TavernAssetsSelectedEvent | TavernAssetsEditedEvent
 
 /** Durable opening greeting selected from a Character Card for one Session. */
 /** Durable activation payload written before a matched context snapshot is used. */
 export interface TavernContextActivationEvent {
-  readonly fingerprint: string
+  /**
+   * Legacy persisted fingerprint. New activations keep this only in memory;
+   * the field remains optional so old logs can still be inspected.
+   */
+  readonly fingerprint?: string
   readonly selection: AssetSelection
   readonly query: string
   readonly observer: Observer
@@ -42,28 +68,229 @@ export interface TavernContextActivationEvent {
 
 declare module '@deepseek-ai/dsh-session/types' {
   interface SessionEventMap {
-    /** The character and World Info baseline selected for later turns. */
+    /** Asset references selected for later turns; source data is resolved by Host. */
     'tavern/assets-selected': TavernAssetsSelectedEvent
+    /** Metadata for a Journey asset-selection edit. */
+    'tavern/assets-edited': TavernAssetsEditedEvent
     /** The World Info compiler decision used for one model-visible snapshot. */
     'tavern/context-activation': TavernContextActivationEvent
-    /** A durable memory entry update used by the Tavern context projection. */
-    'tavern/memory': import('./types.ts').TavernMemoryEvent
     /** A durable canonical story-state change used by the Tavern context projection. */
     'tavern/story-state': TavernStoryStateEvent
   }
 }
 
 /**
- * Read the latest selected Tavern baseline in one session log.
+ * Read the latest selected Tavern asset references in one session log.
  * @param session - Session event sequence to inspect.
  * @returns The latest selection event, or undefined when none is recorded.
  */
-export function resolveTavernSelection(session: Pick<Session, 'events'>): TavernAssetsSelectedEvent | undefined {
+export function resolveTavernSelection(session: Pick<Session, 'events'>): TavernSelectionEvent | undefined {
+  return resolveTavernSelectionAt(session)
+}
+
+/**
+ * Read the selected asset references and any later edit metadata visible at a log sequence.
+ * @param session - Session event sequence to inspect.
+ * @param maxSeq - Inclusive sequence limit, or the end of the current log.
+ * @returns The latest selected source references or edit metadata, or undefined.
+ */
+export function resolveTavernSelectionAt(session: Pick<Session, 'events'>, maxSeq = Number.MAX_SAFE_INTEGER): TavernSelectionEvent | undefined {
+  let selected: TavernSelectionEvent | undefined
+  let selectedSeq = Number.MAX_SAFE_INTEGER
+  let edited: TavernSelectionEvent | undefined
+  let editedSeq = -1
   for (let index = session.events.length - 1; index >= 0; index -= 1) {
     const event = session.events[index]
-    if (event?.type === 'tavern/assets-selected') return event.data
+    if (event === undefined || event.seq > maxSeq) continue
+    if (event.type === 'tavern/assets-edited' && edited === undefined) {
+      edited = event.data
+      editedSeq = event.seq
+    }
+    if (event.type === 'tavern/assets-selected') {
+      selected = event.data
+      selectedSeq = event.seq
+      break
+    }
   }
-  return undefined
+  const current = edited !== undefined && editedSeq > selectedSeq ? edited : selected
+  return current
+}
+
+/**
+ * Resolve a Journey's current source assets with the latest local fact overlay.
+ * @param session - Session event sequence to inspect.
+ * @param maxSeq - Inclusive sequence limit used for branch and historical replay.
+ * @returns The latest Journey detail projection, or undefined before asset selection.
+ */
+export function resolveTavernJourneyAssets(session: Pick<Session, 'events'>, maxSeq = Number.MAX_SAFE_INTEGER): TavernJourneyAssetProjection | undefined {
+  const selection = resolveTavernSelectionAt(session, maxSeq)
+  if (selection === undefined) return undefined
+  return projectTavernJourneyAssets(selectionProjection(selection), resolveTavernFacts(session, maxSeq))
+}
+
+function selectionProjection(event: TavernSelectionEvent): TavernJourneySelection {
+  const character = event.character ?? null
+  const worldInfo = event.worldInfo === undefined ? [] : [...event.worldInfo]
+  return {
+    selection: structuredClone(event.selection),
+    baseline: event.baseline === undefined ? emptyPromptBaseline(event.selection) : structuredClone(event.baseline),
+    character: character === null ? null : structuredClone(character),
+    worldInfo: worldInfo.map(asset => structuredClone(asset)),
+    characterName: event.characterName ?? character?.name ?? null,
+    worldInfoNames: event.worldInfoNames === undefined ? worldInfo.map(asset => asset.name) : [...event.worldInfoNames],
+    ...(event.playerIdentity === undefined ? {} : { playerIdentity: event.playerIdentity }),
+  }
+}
+
+function emptyPromptBaseline(selection: AssetSelection): PromptAssetBaseline {
+  return {
+    selection: structuredClone(selection),
+    references: [],
+    characterSections: [],
+    worldInfoEntries: [],
+  }
+}
+
+/**
+ * Rebuild dynamic ledger configuration from the current Session branch.
+ * @param session - Session event sequence to inspect.
+ * @returns Section configuration folded from append-only events.
+ */
+export function resolveTavernSectionConfig(session: Pick<Session, 'id' | 'events'>): TavernSectionConfigProjection {
+  const state: Record<'character' | 'world', { names: Record<string, string>; hidden: Set<string>; order: string[] }> = {
+    character: { names: {}, hidden: new Set(), order: [] },
+    world: { names: {}, hidden: new Set(), order: [] },
+  }
+  const branch = String(session.id)
+  for (const event of session.events) {
+    if (event.type !== 'tavern/section-config' || event.data.branch !== branch) continue
+    const current = state[event.data.scope]
+    const sectionId = event.data.sectionId
+    switch (event.data.operation) {
+      case 'add':
+        if (event.data.name !== undefined) current.names[sectionId] = event.data.name
+        current.hidden.delete(sectionId)
+        if (!current.order.includes(sectionId)) current.order.push(sectionId)
+        break
+      case 'rename':
+        if (event.data.name !== undefined) current.names[sectionId] = event.data.name
+        break
+      case 'remove':
+        current.hidden.add(sectionId)
+        break
+      case 'restore':
+        current.hidden.delete(sectionId)
+        break
+      case 'reorder':
+        if (event.data.order !== undefined) {
+          current.order = [...new Set(event.data.order)]
+        }
+        break
+    }
+  }
+  return {
+    character: {
+      names: { ...state.character.names },
+      hidden: [...state.character.hidden],
+      order: [...state.character.order],
+    },
+    world: {
+      names: { ...state.world.names },
+      hidden: [...state.world.hidden],
+      order: [...state.world.order],
+    },
+  }
+}
+
+function nextSectionId(session: Pick<Session, 'events'>, scope: TavernSectionConfigInput['scope']): string {
+  const used = new Set<string>()
+  for (const event of session.events) {
+    if (event.type === 'tavern/section-config' && event.data.scope === scope) used.add(event.data.sectionId)
+  }
+  let index = 1
+  while (used.has(`${scope}:custom-${index}`)) index += 1
+  return `${scope}:custom-${index}`
+}
+
+function requiredSectionName(input: TavernSectionConfigInput): string {
+  const name = input.name?.trim()
+  if (name === undefined || name.length === 0) throw new Error(`Tavern section ${input.operation} requires a name`)
+  return name
+}
+
+function requiredSectionId(input: TavernSectionConfigInput, session: Pick<Session, 'events'>): string {
+  const sectionId = input.sectionId?.trim()
+  if (input.operation === 'add') return sectionId === undefined || sectionId.length === 0 ? nextSectionId(session, input.scope) : sectionId
+  if (sectionId === undefined || sectionId.length === 0) throw new Error(`Tavern section ${input.operation} requires a sectionId`)
+  return sectionId
+}
+
+/**
+ * Validate and append one dynamic ledger configuration event.
+ * @param session - Live Session receiving the event.
+ * @param input - Requested section operation.
+ * @returns The appended event and its replayed inspection.
+ */
+export function appendTavernSectionConfig(session: Session, input: TavernSectionConfigInput): TavernSectionConfigInspection {
+  const sectionId = requiredSectionId(input, session)
+  const name = input.operation === 'add' || input.operation === 'rename' ? requiredSectionName(input) : undefined
+  const order = input.operation === 'reorder' ? input.order?.filter(id => id.trim().length > 0) : undefined
+  if (input.operation === 'reorder' && (order === undefined || order.length === 0)) {
+    throw new Error('Tavern section reorder requires a non-empty order')
+  }
+  if (order !== undefined && new Set(order).size !== order.length) throw new Error('Tavern section order contains duplicate ids')
+  if (input.operation === 'reorder' && order !== undefined && !order.includes(sectionId)) {
+    throw new Error('Tavern section reorder must include sectionId')
+  }
+  const data: TavernSectionConfigEvent = {
+    branch: String(session.id),
+    scope: input.scope,
+    sectionId,
+    operation: input.operation,
+    ...(name === undefined ? {} : { name }),
+    ...(order === undefined ? {} : { order: [...order] }),
+  }
+  if (sectionConfigAlreadyApplied(session, data)) return inspectTavernSectionConfig(session)
+  session.append('tavern/section-config', data)
+  return inspectTavernSectionConfig(session)
+}
+
+function sectionConfigAlreadyApplied(
+  session: Pick<Session, 'id' | 'events'>,
+  event: TavernSectionConfigEvent,
+): boolean {
+  const current = resolveTavernSectionConfig(session)[event.scope]
+  const hidden = current.hidden.includes(event.sectionId)
+  switch (event.operation) {
+    case 'add':
+      return current.order.includes(event.sectionId)
+        && !hidden
+        && current.names[event.sectionId] === event.name
+    case 'rename':
+      return current.names[event.sectionId] === event.name
+    case 'remove':
+      return hidden
+    case 'restore':
+      return !hidden
+    case 'reorder':
+      return event.order !== undefined
+        && event.order.length === current.order.length
+        && event.order.every((sectionId, index) => sectionId === current.order[index])
+  }
+}
+
+/**
+ * Inspect section configuration and the source events used to build it.
+ * @param session - Session event sequence to inspect.
+ * @returns Current section configuration and audit records.
+ */
+export function inspectTavernSectionConfig(session: Pick<Session, 'id' | 'events'>): TavernSectionConfigInspection {
+  return {
+    projection: resolveTavernSectionConfig(session),
+    records: session.events
+      .filter((event): event is SessionEvent<'tavern/section-config'> => event.type === 'tavern/section-config')
+      .map(event => ({ seq: event.seq, data: structuredClone(event.data) })),
+  }
 }
 
 /**
@@ -114,21 +341,6 @@ export function resolveTavernContextActivation(session: Pick<Session, 'events'>)
     if (event?.type === 'tavern/context-activation') return event.data
   }
   return undefined
-}
-
-/**
- * Read the latest enabled memory values in event order.
- * @param session - Session event sequence to inspect.
- * @returns Enabled memory entries in their durable insertion order.
- */
-export function resolveTavernMemory(session: Pick<Session, 'events'>): readonly TavernMemoryEntry[] {
-  const entries = new Map<string, TavernMemoryEntry>()
-  for (const event of session.events) {
-    if (event.type !== 'tavern/memory') continue
-    if (event.data.operation === 'remove') entries.delete(event.data.memory.id)
-    else entries.set(event.data.memory.id, event.data.memory)
-  }
-  return [...entries.values()].filter(entry => entry.enabled).map(entry => structuredClone(entry))
 }
 
 /**
@@ -211,12 +423,28 @@ export function appendTavernAssistantCandidate(session: Session, turn: number): 
     content: assistant.data.message as unknown as JsonValue,
     extensions: {},
   }
+  appendTavernSwipeCandidate(session, groupId, candidate, 'model-candidate')
+}
+
+/**
+ * Append one candidate and select it for a Tavern swipe group.
+ * @param session - Live session receiving the candidate and selection events.
+ * @param groupId - Swipe group that owns the candidate.
+ * @param candidate - Assistant candidate to append and select.
+ * @param addAuthority - Authority recorded for the candidate-add event.
+ */
+export function appendTavernSwipeCandidate(
+  session: Session,
+  groupId: import('@deepseek-ai/dsh-tavern-state/types').SwipeGroupId,
+  candidate: import('@deepseek-ai/dsh-tavern-state/types').SwipeAssistantCandidate,
+  addAuthority: 'model-candidate' | 'observed' = 'observed',
+): void {
   session.append('tavern/swipe', {
     kind: 'candidate.add',
     branch: String(session.id),
     groupId,
-    candidate,
-    authority: { kind: 'model-candidate', extensions: {} },
+    candidate: structuredClone(candidate),
+    authority: { kind: addAuthority, extensions: {} },
     validity: { status: 'valid', extensions: {} },
   })
   session.append('tavern/swipe', {

@@ -53,6 +53,18 @@ async function feedList(b: Bench, rows: FeedRow[]): Promise<void> {
 }
 
 describe('list store projection', () => {
+  it('switches the real current session when open is called repeatedly', async () => {
+    const b = bench()
+    await feedList(b, [{ id: 'first' }, { id: 'second' }])
+
+    b.svc.open(sid('first'))
+    expect(b.svc.list.getSnapshot().current).toBe(sid('first'))
+    b.svc.open(sid('second'))
+
+    expect(b.svc.list.getSnapshot().current).toBe(sid('second'))
+    expect(b.svc.currentProvideInfo.getSnapshot().sessionId).toBe(sid('second'))
+  })
+
   it('projects durable titles separately from cwd/id display fallbacks and parent links', async () => {
     const b = bench()
     b.svc.handleMuxEnvelope({

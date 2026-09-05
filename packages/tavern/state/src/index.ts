@@ -28,6 +28,10 @@ import type {
   StoryStateProjectionOptions,
   StoryTime,
 } from './types.ts'
+import { isJsonValue as sharedIsJsonValue, isRecord as sharedIsRecord } from '@deepseek-ai/dsh-tavern-shared'
+import { validateCommonRecord } from './record-validation.ts'
+
+export { isJsonValue } from '@deepseek-ai/dsh-tavern-shared'
 
 export type * from './types.ts'
 export {
@@ -93,21 +97,13 @@ export function createStoryState(branchId: StoryBranchId): StoryState {
  * @param value - value to inspect.
  * @returns whether the value is an accepted JSON value.
  */
-export function isJsonValue(value: unknown): value is JsonValue {
-  if (value === null || typeof value === 'boolean' || typeof value === 'string') return true
-  if (typeof value === 'number') return Number.isFinite(value)
-  if (Array.isArray(value)) return value.every(item => isJsonValue(item))
-  if (!isPlainObject(value)) return false
-  return Object.values(value).every(item => isJsonValue(item))
-}
-
 /**
  * Validate a JSON object used as lossless extension data.
  * @param value - value to inspect.
  * @returns whether the value is an accepted JSON object.
  */
 export function isJsonObject(value: unknown): value is JsonObject {
-  return isPlainObject(value) && Object.values(value).every(item => isJsonValue(item))
+  return sharedIsRecord(value) && Object.values(value).every(item => sharedIsJsonValue(item))
 }
 
 /**
@@ -210,12 +206,6 @@ function assertIdentifier(value: string, name: string): void {
   if (value.trim() === '') throw new Error(`${name} must be a non-empty string`)
 }
 
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
-  const prototype = Reflect.getPrototypeOf(value)
-  return prototype === Object.prototype || prototype === null
-}
-
 function isBranchSelectionValid(branchId: StoryBranchId, lineage: readonly StoryBranchId[]): boolean {
   if (lineage.length === 0 || lineage.at(-1) !== branchId) return false
   return new Set(lineage).size === lineage.length
@@ -227,13 +217,16 @@ function validateRecordForProjection(
   seenSourceEvents: ReadonlySet<string>,
   lastSequence: number,
 ): StoryStateProjectionIssue | undefined {
-  if (!branchLineage.includes(record.branchId)) return issueFor(record, 'stale-branch', 'record belongs to a branch outside the selected lineage')
-  if (seenSourceEvents.has(record.sourceEventId)) return issueFor(record, 'duplicate-source-event', 'sourceEventId has already been accepted')
-  if (!Number.isSafeInteger(record.sequence) || record.sequence <= lastSequence) {
-    return issueFor(record, 'invalid-sequence', 'record sequence must be a positive integer greater than the previous accepted sequence')
-  }
-  if (record.validity.status !== 'valid') return issueFor(record, 'invalid-validity', 'invalid records cannot be projected as current state')
-  if (!isAuthority(record.authority) || !isJsonObject(record.extensions)) return issueFor(record, 'invalid-record', 'record metadata is not canonical JSON')
+  const commonIssue = validateCommonRecord(
+    record,
+    branchLineage,
+    seenSourceEvents,
+    lastSequence,
+    isAuthority,
+    isJsonObject,
+    'invalid records cannot be projected as current state',
+  )
+  if (commonIssue !== undefined) return issueFor(record, commonIssue.code, commonIssue.message)
   if (record.authority.kind === 'model-candidate') return issueFor(record, 'insufficient-authority', 'model candidates must be promoted before changing canonical state')
   const issue = validateChange(record.change)
   return issue === undefined ? undefined : issueFor(record, 'invalid-update', issue)
@@ -256,7 +249,7 @@ function validateChange(change: StoryStateChange): string | undefined {
     case 'cultivation.remove': return identifierIssue(change.subjectId, 'subjectId')
     case 'oath.upsert': return isOath(change.oath) ? undefined : 'oath value is invalid'
     case 'oath.remove': return identifierIssue(change.oathId, 'oathId')
-    case 'extension.set': return isExtensionKey(change.namespace) && isExtensionKey(change.key) && isJsonValue(change.value)
+    case 'extension.set': return isExtensionKey(change.namespace) && isExtensionKey(change.key) && sharedIsJsonValue(change.value)
       ? undefined
       : 'extension namespace, key, or value is invalid'
     case 'extension.remove': return isExtensionKey(change.namespace) && isExtensionKey(change.key)
@@ -407,7 +400,7 @@ function cloneJsonValue(value: JsonValue): JsonValue {
 }
 
 function isJsonArray(value: unknown): value is readonly JsonValue[] {
-  return Array.isArray(value) && value.every(item => isJsonValue(item))
+  return Array.isArray(value) && value.every(item => sharedIsJsonValue(item))
 }
 
 function cloneLocation(value: StoryLocation): StoryLocation {

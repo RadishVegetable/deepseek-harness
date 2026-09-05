@@ -13,9 +13,92 @@
   config:
     default: tavern
 
+- id: ui-layout
+  disabled: true
+
+- id: ui-sidebar
+  disabled: true
+
+- id: ui-conversation
+  disabled: true
+
+- id: ui-tavern
+  disabled: true
+
+# The Tavern root owns its own navigation, settings, transcript, and context
+# tools. These generic browser occupants must stay disabled so no nested shell
+# can win a slot or reintroduce the generic composer after a route change.
+- id: ui-settings
+
+- id: ui-settings-general
+  disabled: true
+
+- id: ui-settings-models
+  disabled: true
+
+- id: ui-settings-plugin-inventory
+  disabled: true
+
+- id: ui-tool
+  disabled: true
+
+- id: ui-cordis
+  disabled: true
+
+- id: ui-workflow-run
+  disabled: true
+
+- id: ui-deliverables
+  disabled: true
+
+- id: ui-workspace
+  disabled: true
+
+- id: ui-input-trigger
+  disabled: true
+
+- id: ui-commands
+  disabled: true
+
+- id: ui-skill
+  disabled: true
+
+- id: ui-subagent
+  disabled: true
+
+- id: ui-jobs
+  disabled: true
+
+- id: ui-goal
+  disabled: true
+
+- id: ui-message-feedback
+  disabled: true
+
+- id: ui-model-selection
+  disabled: true
+
+- id: ui-permission
+  disabled: true
+
+- id: ui-agent-preset
+  disabled: true
+
+- id: ui-settings-plugins
+  disabled: true
+
+- id: ui-plan
+  disabled: true
+
+- id: ui-user-questions
+  disabled: true
+
+- id: ui-trajectory
+  disabled: true
+
 - insert:
     - id: tavern-assets
       name: '@deepseek-ai/dsh-tavern-host'
 
-    - id: ui-tavern
-      name: '@deepseek-ai/dsh-client-ui-tavern'
+    - id: ui-tavern-app
+      name: '@deepseek-ai/dsh-client-ui-tavern-app'

@@ -20,7 +20,11 @@ The layout declares a root-level `tavern` slot. The Tavern plugin contributes fu
 
 When no Character Card is selected, the workspace shows an explicit empty state and the shared composer remains unavailable for the Tavern roleplay path. Asset import and Session selection continue to use the existing Host Remote and append-only selection event; an empty session with a non-empty Character Card `firstMessage` also receives one durable `tavern/greeting` event. The greeting is projected into the shared Chat flow and persona without becoming an `assistant/message`, and the browser package owns no transcript or roleplay state.
 
+The Tavern Journey Host projection includes the durable greeting as `openingGreeting`, and the Journey client renders it before transcript nodes. The empty-transcript message is suppressed when that greeting is present, so a replayed authored opening is not mistaken for missing content.
+
 The same workspace exposes Host-backed source editing and export, session Memory upserts, canonical location and time Story State controls, retained assistant Swipe candidates, and a Prompt Inspector for the latest recorded request. These controls append their domain events to the Session log; the workspace does not maintain a parallel roleplay database.
+
+The Journey client exposes roleplay context through one right-side drawer with Characters, World, and Memory tabs. Character rows use the projected character fields and remain individually expandable. World rendering accepts only world-oriented projected fields and filters character-shaped World Book entries; authored-asset bootstrap facts remain in the character or world views instead of the Memory tab.
 
 World Info runtime compilation uses the smallest selected `scanDepth` as the recent-message query window and the smallest selected `tokenBudget` as a deterministic first-fit budget. Intermediate probability uses a stable session/source/query-derived roll, and entries sharing a group compete through deterministic ranking. Depth, sticky, and cooldown metadata remain source-tracked in the baseline and activation ledger; recursive scans and persistent sticky/cooldown timers are deferred.
 
@@ -38,9 +42,11 @@ World Info runtime compilation uses the smallest selected `scanDepth` as the rec
 - The Tavern client package typecheck and bundle pass.
 - The conversation client package typecheck and bundle pass.
 - Focused Tavern, greeting, ChatView, and session-skeleton tests pass.
+- The Journey client regression test confirms that a durable Character Card greeting renders before conversation messages.
 - Host swipe projection and client Memory, Story State, Swipe, and Prompt Inspector controls pass their focused tests.
+- The client context-drawer tests cover tab selection, keyboard dismissal, duplicate embedded World Book suppression, character-shaped World Book filtering, and exclusion of authored-asset bootstrap facts from Memory.
 - The local Web page shows one shared composer beneath the Tavern workspace after the generated client bundle is loaded.
 
 ## Consequences
 
-The Tavern root is a full-screen roleplay workspace inside the existing AppFrame rather than a second runtime. Character greeting and recent messages are visible where asset selection happens, while full transcript rendering and send behavior remain owned by `ui-conversation`. The durable greeting is single-use for an empty session; switching characters after conversation content exists does not inject a new card greeting. Memory, canonical Story State, retained Swipe selection, source editing, and latest-request Prompt Inspector are available as session controls; full fork/regenerate behavior, alternate greeting selection, observer-specific memory retrieval, group chat, scene planning, and RAG remain separate capabilities.
+The Tavern root is a full-screen roleplay workspace inside the existing AppFrame rather than a second runtime. Character greeting and recent messages are visible where asset selection happens, while full transcript rendering and send behavior remain owned by `ui-conversation`. The durable greeting is single-use for an empty session; switching characters after conversation content exists does not inject a new card greeting. Character, World, and Memory context are presented in one keyboard-dismissible right-side drawer, and Memory excludes authored-asset bootstrap facts so the view represents evolving memory entries. World display remains a projection of the current asset model; model-derived geographic summaries are a separate capability. Memory, canonical Story State, retained Swipe selection, source editing, and latest-request Prompt Inspector are available as session controls; full fork/regenerate behavior, alternate greeting selection, observer-specific memory retrieval, group chat, scene planning, and RAG remain separate capabilities.

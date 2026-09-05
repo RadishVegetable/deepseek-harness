@@ -5,13 +5,10 @@ import type {
   WorldInfoActivationCandidate,
   WorldInfoMatchInput,
 } from './types.ts'
+import { compareSourceProvenance, compareStrings } from './ordering.ts'
 
 function normalized(value: string): string {
   return value.normalize('NFKC').toLowerCase()
-}
-
-function compareStrings(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0
 }
 
 function isWordCharacter(value: string | undefined): boolean {
@@ -92,11 +89,7 @@ function compareCandidates<T>(
   if (priorityOrder !== 0) return priorityOrder
   const keyOrder = compareStrings(left.source.key, right.source.key)
   if (keyOrder !== 0) return keyOrder
-  const provenanceOrder = compareStrings(left.source.provenance.kind, right.source.provenance.kind)
-  if (provenanceOrder !== 0) return provenanceOrder
-  const idOrder = compareStrings(left.source.provenance.id, right.source.provenance.id)
-  if (idOrder !== 0) return idOrder
-  return compareStrings(left.source.text, right.source.text)
+  return compareSourceProvenance(left.source, right.source)
 }
 
 /**

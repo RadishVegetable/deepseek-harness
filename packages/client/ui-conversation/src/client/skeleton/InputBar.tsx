@@ -69,6 +69,7 @@ export function InputBar({
   // current; the bar renders the same DOM inert instead of a parallel tree.
   const live = input !== undefined && keyboard !== undefined && inputActions !== undefined
   const draft = input?.draft ?? ''
+  const roleplaySurface = document.documentElement.dataset.dshSurface === 'tavern'
   const attachments = useMemo(
     () => input === undefined || draftImages === undefined ? [] : draftImages(input.imageIds),
     [draftImages, input?.imageIds],
@@ -731,7 +732,8 @@ export function InputBar({
                   // (the gate never consults plan mode), so the actionable hint wins.
                   : canSteerQueue
                     ? t('placeholder.steerQueue')
-                    : planActive ? t('placeholder.plan') : t('placeholder.default'))}
+                    : planActive ? t('placeholder.plan')
+                      : roleplaySurface ? t('placeholder.roleplay') : t('placeholder.default'))}
               rows={2}
               onChange={onChange}
               onKeyDown={onKeyDown}

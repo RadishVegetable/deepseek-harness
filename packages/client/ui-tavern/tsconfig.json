@@ -21,6 +21,9 @@
       "path": "../ui-conversation"
     },
     {
+      "path": "../ui-model-selection"
+    },
+    {
       "path": "../ui-layout"
     },
     {
@@ -43,6 +46,9 @@
     },
     {
       "path": "../../tavern/host"
+    },
+    {
+      "path": "../../tavern/shared"
     },
     {
       "path": "../../runtime-diagnostics/invariants"

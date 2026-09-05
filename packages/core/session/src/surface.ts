@@ -64,9 +64,9 @@ export function isAppendSurfaceEvent(
 export function isReplacementSurfaceEvent(
   event: SessionEvent,
 ): event is SurfaceEvent & { surfaceOp: Extract<SurfaceOp, { op: 'replace' }> } {
-  return isSurfaceEvent(event)
-    && event.surfaceOp !== 'append'
-    && event.surfaceOp.op === 'replace'
+  if (!isSurfaceEvent(event)) return false
+  const { surfaceOp } = event
+  return typeof surfaceOp === 'object'
 }
 
 /**
@@ -511,7 +511,7 @@ function planSurfaceEvent(
     return planMessageEdit(state, event, expectedSeq, events, baseSeq)
   }
   if (state.pendingEdit !== undefined) {
-    if (surfaceOp === undefined || surfaceOp === 'append' || surfaceOp.op !== 'replace') {
+    if (surfaceOp === undefined || surfaceOp === 'append') {
       throw new Error(`message/edit at seq ${state.pendingEdit.seq} must be followed by its replacement message`)
     }
     if (event.type !== 'user/message' && event.type !== 'assistant/message') {

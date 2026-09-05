@@ -17,6 +17,8 @@ import type {
   SwipeRecord,
   SwipeState,
 } from './types.ts'
+import { isJsonValue as sharedIsJsonValue, isRecord as sharedIsRecord } from '@deepseek-ai/dsh-tavern-shared'
+import { validateCommonRecord } from './record-validation.ts'
 
 /**
  * Brand a non-empty swipe group id.
@@ -165,13 +167,16 @@ function validateRecord(
   seenSourceEvents: ReadonlySet<string>,
   lastSequence: number,
 ): SwipeProjectionIssue | undefined {
-  if (!branchLineage.includes(record.branchId)) return issueFor(record, 'stale-branch', 'record belongs to a branch outside the selected lineage')
-  if (seenSourceEvents.has(record.sourceEventId)) return issueFor(record, 'duplicate-source-event', 'sourceEventId has already been accepted')
-  if (!Number.isSafeInteger(record.sequence) || record.sequence <= lastSequence) {
-    return issueFor(record, 'invalid-sequence', 'record sequence must be a positive integer greater than the previous accepted sequence')
-  }
-  if (record.validity.status !== 'valid') return issueFor(record, 'invalid-validity', 'invalid records cannot be projected as current swipe state')
-  if (!isAuthority(record.authority) || !isJsonObject(record.extensions)) return issueFor(record, 'invalid-record', 'record metadata is not canonical JSON')
+  const commonIssue = validateCommonRecord(
+    record,
+    branchLineage,
+    seenSourceEvents,
+    lastSequence,
+    isAuthority,
+    isJsonObject,
+    'invalid records cannot be projected as current swipe state',
+  )
+  if (commonIssue !== undefined) return issueFor(record, commonIssue.code, commonIssue.message)
   if (record.kind === 'candidate.select' && record.authority.kind === 'model-candidate') {
     return issueFor(record, 'insufficient-authority', 'model candidates cannot select the current assistant candidate')
   }
@@ -186,7 +191,7 @@ function validateCandidate(groupId: SwipeGroupId, candidate: SwipeAssistantCandi
     ?? identifierIssue(candidate.candidateId, 'candidateId')
     ?? identifierIssue(candidate.assistantEventId, 'assistantEventId')
     ?? (isSwipeOrigin(candidate.origin) ? undefined : 'candidate origin is invalid')
-    ?? (isJsonValue(candidate.content) ? undefined : 'candidate content must be canonical JSON')
+    ?? (sharedIsJsonValue(candidate.content) ? undefined : 'candidate content must be canonical JSON')
     ?? (isJsonObject(candidate.extensions) ? undefined : 'candidate extensions must be a JSON object')
 }
 
@@ -227,22 +232,8 @@ function assertIdentifier(value: string, name: string): void {
   if (identifierIssue(value, name) !== undefined) throw new Error(`${name} must be a non-empty string`)
 }
 
-function isJsonValue(value: unknown): value is JsonValue {
-  if (value === null || typeof value === 'boolean' || typeof value === 'string') return true
-  if (typeof value === 'number') return Number.isFinite(value)
-  if (Array.isArray(value)) return value.every(item => isJsonValue(item))
-  if (!isPlainObject(value)) return false
-  return Object.values(value).every(item => isJsonValue(item))
-}
-
 function isJsonObject(value: unknown): value is JsonObject {
-  return isPlainObject(value) && Object.values(value).every(item => isJsonValue(item))
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) return false
-  const prototype = Reflect.getPrototypeOf(value)
-  return prototype === Object.prototype || prototype === null
+  return sharedIsRecord(value) && Object.values(value).every(item => sharedIsJsonValue(item))
 }
 
 function cloneCandidate(candidate: SwipeAssistantCandidate): SwipeAssistantCandidate {
@@ -254,7 +245,10 @@ function cloneCandidate(candidate: SwipeAssistantCandidate): SwipeAssistantCandi
 }
 
 function cloneJsonValue(value: JsonValue): JsonValue {
-  if (Array.isArray(value)) return value.map(item => cloneJsonValue(item))
+  if (Array.isArray(value)) {
+    const items = value as readonly JsonValue[]
+    return items.map(item => cloneJsonValue(item))
+  }
   if (isJsonObject(value)) return cloneJsonObject(value)
   return value
 }

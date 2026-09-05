@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/feature/2026-08-24-tavern-roleplay-surface.md
-2026-08-24-tavern-roleplay-surface.md: 20d08e93336fee96b10b8d13d47f530cda4af482
-2026-08-24-tavern-roleplay-surface.zh.md: 433467b8f04823f14f52fab45cb1bbfc0bca6375
+2026-08-24-tavern-roleplay-surface.md: 92ee8a0b6375e99cea222368f76555f2f041ad3a
+2026-08-24-tavern-roleplay-surface.zh.md: ef0425b59bb3ca46ed96fa6c4bf0d5ea73cbb057

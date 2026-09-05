@@ -4,9 +4,11 @@
  * exclusions, which may have neither a counterpart nor a sidecar.
  * `--list` reports state; `--write <pairs...>` records the named confirmed
  * pairs (`--write --all` records every complete pair); `--cached <pairs...>`
- * checks exact index bytes for hooks. A check or write named with pair paths
- * touches only those pairs, so update iteration does not pay for a corpus
- * scan. Translation quality remains a review responsibility.
+ * checks named index bytes for hooks, while `--cached --all` checks the
+ * complete index corpus without placing every staged path on one command
+ * line. A named check or write touches only those pairs, so update iteration
+ * does not pay for a corpus scan. Translation quality remains a review
+ * responsibility.
  * See `docs/i18n/README.md` for the owning contract.
  */
 

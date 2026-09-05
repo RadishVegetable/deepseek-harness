@@ -2,8 +2,9 @@
 
 import { z } from 'zod'
 import { defineDomain, domainTable } from '@deepseek-ai/dsh-storage-domain'
+import { isJsonValue } from '@deepseek-ai/dsh-tavern-shared'
 import type { AssetId, JsonObject } from '@deepseek-ai/dsh-tavern-assets'
-import type { TavernImportSource } from './types.ts'
+import type { TavernAssetCleaningRecord, TavernImportSource } from './types.ts'
 
 const jsonValueSchema = z.unknown().refine(isJsonValue, {
   message: 'Tavern asset source data must be JSON-compatible',
@@ -18,12 +19,52 @@ const sourceSchema = z.object({
   digest: z.string().nullable().optional(),
 }).transform(value => value as TavernImportSource)
 
+const canonicalCharacterFieldSchema = z.object({
+  label: z.string().min(1),
+  value: z.string().min(1),
+  sourceEntryId: z.string().min(1).optional(),
+})
+
+const canonicalWorldEntrySchema = z.object({
+  theme: z.string().min(1),
+  text: z.string().min(1),
+  suggestedKeys: z.array(z.string().min(1)),
+  sourceEntryId: z.string().min(1),
+  role: z.union([z.literal('npc'), z.literal('world'), z.literal('protagonist')]),
+})
+
+const canonicalNoiseSchema = z.object({
+  sourceEntryId: z.string().min(1),
+  reason: z.union([z.literal('duplicate'), z.literal('unclassifiable'), z.literal('stale')]),
+})
+
+const canonicalViewSchema = z.object({
+  assetId: z.string().min(1),
+  kind: z.union([z.literal('character'), z.literal('world-info')]),
+  characterFields: z.array(canonicalCharacterFieldSchema),
+  protagonistFields: z.array(canonicalCharacterFieldSchema),
+  worldEntries: z.array(canonicalWorldEntrySchema),
+  openingPrompt: z.string().min(1).optional(),
+  greeting: z.string().min(1).optional(),
+  noise: z.array(canonicalNoiseSchema),
+  uncleaned: z.boolean(),
+})
+
+const cleaningRecordSchema = z.object({
+  status: z.union([z.literal('fallback'), z.literal('model'), z.literal('confirmed')]),
+  origin: z.union([z.literal('heuristic'), z.literal('model')]),
+  view: canonicalViewSchema,
+  route: z.object({ provider: z.string().min(1), model: z.string().min(1) }).optional(),
+  error: z.string().optional(),
+}).transform(value => value as TavernAssetCleaningRecord)
+
 /** One source record sufficient to reconstruct a normalized asset. */
 export const tavernAssetRecordSchema = z.object({
   kind: z.union([z.literal('character'), z.literal('world-info')]),
   id: z.string().min(1).transform(value => value as AssetId),
   input: jsonObjectSchema,
   source: sourceSchema,
+  cleaning: cleaningRecordSchema.optional(),
 })
 
 /** Persisted Tavern asset record inferred from the durable schema. */
@@ -37,11 +78,3 @@ export const tavernAssetDomainSpec = defineDomain({
     assets: domainTable<AssetId, TavernAssetRecord>(tavernAssetRecordSchema),
   },
 })
-
-function isJsonValue(value: unknown): boolean {
-  if (value === null || typeof value === 'string' || typeof value === 'boolean') return true
-  if (typeof value === 'number') return Number.isFinite(value)
-  if (Array.isArray(value)) return value.every(isJsonValue)
-  if (typeof value !== 'object') return false
-  return Object.values(value).every(isJsonValue)
-}

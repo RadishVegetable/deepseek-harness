@@ -1,6 +1,6 @@
 # @deepseek-ai/dsh-client-ui-layout
 
-Tavern profile 通过 root 级 `tavern` surface 提供全屏入口；普通 Web 继续使用标准 AppFrame 导航。
+layout root 保持与 profile 无关。Tavern 由 `ui-tavern-app` 自己拥有完整的浏览器 root；本 package 不读取 document 属性，也不会在 conversation 上方挂载第二个 Tavern surface。
 
 [English](README.md) | 中文
 

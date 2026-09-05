@@ -37,6 +37,9 @@ const compactionScenarioDir = join(snapshotsDir, 'compaction-recovery')
 const compactionSessionFixture = join(compactionScenarioDir, 'session.jsonl')
 const compactionStreamExpected = join(compactionScenarioDir, 'stream-json.expected.jsonl')
 const compactionConfigPath = fileURLToPath(new URL('../compaction.cordis.snapshot.yml', import.meta.url))
+const tavernMemoryScenarioDir = join(snapshotsDir, 'tavern-memory')
+const tavernMemoryStreamExpected = join(tavernMemoryScenarioDir, 'stream-json.expected.jsonl')
+const tavernMemoryConfigPath = fileURLToPath(new URL('../tavern-memory.cordis.snapshot.yml', import.meta.url))
 const credentialsScenarioDir = join(snapshotsDir, 'missing-credential')
 const credentialsConfigPath = fileURLToPath(new URL('../credentials.cordis.snapshot.yml', import.meta.url))
 // Same keyless composition as the missing-credential scenario: the endpoint is
@@ -397,6 +400,57 @@ describe('headless stream-json snapshots', () => {
     const normalized = normalizeHeadlessStream(result.stdout, runCwd)
     if (refreshing) await writeFile(compactionStreamExpected, normalized)
     expect(normalized).toBe(await readFile(compactionStreamExpected, 'utf8'))
+  }, LOADER_SMOKE_TEST_TIMEOUT_MS)
+
+  it('replays a Tavern Journey memory extraction and compaction through the Loader', async () => {
+    const prompt = await scenarioPrompt(tavernMemoryScenarioDir, 'tavern-memory')
+    let runCwd = ''
+    const result = await runLoaderSmoke({
+      label: 'Tavern memory headless stream-json snapshot',
+      tempDirPrefix: 'headless-snapshot-tavern-memory-',
+      binScript,
+      libBinScript: binScript,
+      configPath: tavernMemoryConfigPath,
+      binArgs: [tavernMemoryConfigPath, prompt],
+      tsconfigPath,
+      env: {
+        NODE_OPTIONS: [process.env.NODE_OPTIONS, '--disable-warning=ExperimentalWarning'].filter(Boolean).join(' '),
+      },
+      prepare: (cwd) => { runCwd = cwd },
+      inspect: async (cwd) => {
+        const logs = await persistedLogs(cwd)
+        expect(logs).toHaveLength(1)
+        const actual = logs[0]
+        if (actual === undefined) throw new Error('Tavern memory snapshot did not persist its session')
+        const records = parseJsonl(actual.content)
+        const types = records.map(record => record.type)
+        expect(types.filter(type => type === 'tavern/assets-selected')).toHaveLength(1)
+        expect(types.filter(type => type === 'tavern/memory-extraction')).toContain('tavern/memory-extraction')
+        expect(records.some(record => record.type === 'tavern/memory-extraction'
+          && (record.data as JsonObject | undefined)?.phase === 'complete')).toBe(true)
+        expect(records.some(record => record.type === 'tavern/fact'
+          && (record.data as JsonObject | undefined)?.text === 'The archive door is open.')).toBe(true)
+        expect(records.some(record => record.type === 'tavern/memory-context'
+          && typeof (record.data as JsonObject | undefined)?.content === 'string'
+          && String((record.data as JsonObject | undefined)?.content).includes('The archive door is open.'))).toBe(true)
+
+        const starts = records.filter(record => record.type === 'compaction/start')
+        const summaries = records.filter(record => record.type === 'compaction/summary')
+        const ends = records.filter(record => record.type === 'compaction/end')
+        expect(starts, `Tavern memory event types: ${types.join(',')}`).toHaveLength(1)
+        expect(summaries, `Tavern memory event types: ${types.join(',')}`).toHaveLength(1)
+        expect(ends, `Tavern memory event types: ${types.join(',')}`).toHaveLength(1)
+        expect(summaries[0]?.data).toMatchObject({ provider: 'tavern-mock', model: 'tavern-mock' })
+        expect(JSON.stringify(summaries[0]?.data)).toContain('The archive door is open.')
+        expect(records.some(record => record.type === 'assistant/message'
+          && JSON.stringify(record.data).includes('TAVERN MEMORY COMPACTION RECOVERED'))).toBe(true)
+      },
+    })
+
+    expect(result.stderr).toBe('')
+    const normalized = normalizeHeadlessStream(result.stdout, runCwd)
+    if (refreshing) await writeFile(tavernMemoryStreamExpected, normalized)
+    expect(normalized).toBe(await readFile(tavernMemoryStreamExpected, 'utf8'))
   }, LOADER_SMOKE_TEST_TIMEOUT_MS)
 
   it('logs actionable missing-credential guidance through the one-shot app', async () => {

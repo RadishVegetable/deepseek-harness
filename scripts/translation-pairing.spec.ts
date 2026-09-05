@@ -310,18 +310,25 @@ describe('pair CLI arguments', () => {
       anchors: [],
     })
     expect(() => parseTranslationPairingCliArgs(['--list', 'docs/foo.md'])).toThrow('takes no other flags or paths')
-    expect(() => parseTranslationPairingCliArgs(['--all'])).toThrow('--all only applies to --write')
+    expect(() => parseTranslationPairingCliArgs(['--all'])).toThrow('--all only applies to --write or --cached')
     expect(() => parseTranslationPairingCliArgs(['--frobnicate'])).toThrow('unknown flag(s): --frobnicate')
   })
 
-  it('makes cached verification a named, read-only index check', () => {
+  it('makes cached verification a named or explicit corpus index check', () => {
     expect(parseTranslationPairingCliArgs(['--cached', 'docs/foo.i18n.yaml'])).toEqual({
       input: 'index',
       mode: 'check',
       scope: 'pairs',
       anchors: ['docs/foo.md'],
     })
+    expect(parseTranslationPairingCliArgs(['--cached', '--all'])).toEqual({
+      input: 'index',
+      mode: 'check',
+      scope: 'corpus',
+      anchors: [],
+    })
     expect(() => parseTranslationPairingCliArgs(['--cached'])).toThrow('requires the staged pair paths')
+    expect(() => parseTranslationPairingCliArgs(['--cached', '--all', 'docs/foo.md'])).toThrow('takes no pair paths')
     expect(() => parseTranslationPairingCliArgs(['--cached', '--write', 'docs/foo.md'])).toThrow('read-only')
   })
 })

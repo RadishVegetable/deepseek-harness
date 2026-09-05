@@ -1264,9 +1264,9 @@ importers:
 
   packages/bundle/tavern:
     dependencies:
-      '@deepseek-ai/dsh-client-ui-tavern':
+      '@deepseek-ai/dsh-client-ui-tavern-app':
         specifier: workspace:^
-        version: link:../../client/ui-tavern
+        version: link:../../client/ui-tavern-app
       '@deepseek-ai/dsh-tavern-host':
         specifier: workspace:^
         version: link:../../tavern/host
@@ -2799,6 +2799,9 @@ importers:
       '@deepseek-ai/dsh-tavern-host':
         specifier: workspace:^
         version: link:../../tavern/host
+      '@deepseek-ai/dsh-tavern-shared':
+        specifier: workspace:^
+        version: link:../../tavern/shared
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -2821,6 +2824,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-layout':
         specifier: workspace:^
         version: link:../ui-layout
+      '@deepseek-ai/dsh-client-ui-model-selection':
+        specifier: workspace:^
+        version: link:../ui-model-selection
       '@deepseek-ai/dsh-client-ui-primitives':
         specifier: workspace:^
         version: link:../ui-primitives
@@ -2845,6 +2851,42 @@ importers:
       react-dom:
         specifier: ^18.2.0
         version: 18.3.1(react@18.3.1)
+
+  packages/client/ui-tavern-app:
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-api-remotes':
+        specifier: workspace:^
+        version: link:../../api/remotes
+      '@deepseek-ai/dsh-client-locale':
+        specifier: workspace:^
+        version: link:../locale
+      '@deepseek-ai/dsh-client-runtime':
+        specifier: workspace:^
+        version: link:../runtime
+      '@deepseek-ai/dsh-client-test-runtime':
+        specifier: workspace:^
+        version: link:../../test-support/client-runtime
+      '@deepseek-ai/dsh-client-ui-primitives':
+        specifier: workspace:^
+        version: link:../ui-primitives
+      '@deepseek-ai/dsh-client-ui-slots':
+        specifier: workspace:^
+        version: link:../ui-slots
+      '@deepseek-ai/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+      '@deepseek-ai/dsh-tavern-host':
+        specifier: workspace:^
+        version: link:../../tavern/host
+      '@types/react':
+        specifier: ~18.3.1
+        version: 18.3.31
+      react:
+        specifier: ^18.2.0
+        version: 18.3.1
 
   packages/client/ui-theme:
     dependencies:
@@ -7611,6 +7653,10 @@ importers:
         version: link:../../runtime-diagnostics/invariants
 
   packages/tavern/compat:
+    dependencies:
+      '@deepseek-ai/dsh-tavern-shared':
+        specifier: workspace:^
+        version: link:../shared
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -7627,6 +7673,18 @@ importers:
 
   packages/tavern/host:
     dependencies:
+      '@deepseek-ai/dsh-brand':
+        specifier: workspace:^
+        version: link:../../util/brand
+      '@deepseek-ai/dsh-compaction':
+        specifier: workspace:^
+        version: link:../../compaction/compaction
+      '@deepseek-ai/dsh-jobs':
+        specifier: workspace:^
+        version: link:../../jobs/jobs
+      '@deepseek-ai/dsh-session-persistence':
+        specifier: workspace:^
+        version: link:../../session/session-persistence
       '@deepseek-ai/dsh-storage-domain':
         specifier: workspace:^
         version: link:../../storage/storage-domain
@@ -7639,12 +7697,24 @@ importers:
       '@deepseek-ai/dsh-tavern-context':
         specifier: workspace:^
         version: link:../context
+      '@deepseek-ai/dsh-tavern-memory':
+        specifier: workspace:^
+        version: link:../memory
+      '@deepseek-ai/dsh-tavern-shared':
+        specifier: workspace:^
+        version: link:../shared
       '@deepseek-ai/dsh-tavern-state':
         specifier: workspace:^
         version: link:../state
+      '@deepseek-ai/dsh-tools':
+        specifier: workspace:^
+        version: link:../../core/tools
       '@deepseek-ai/dsh-typert-protocol':
         specifier: workspace:^
         version: link:../../typert/protocol
+      '@deepseek-ai/schemastery':
+        specifier: link:../../../vendor/schemastery
+        version: link:../../../vendor/schemastery
       zod:
         specifier: ^4.4.3
         version: 4.4.3
@@ -7658,6 +7728,9 @@ importers:
       '@deepseek-ai/dsh-agent-presets':
         specifier: workspace:^
         version: link:../../preset/agent-presets
+      '@deepseek-ai/dsh-commands':
+        specifier: workspace:^
+        version: link:../../interaction/commands
       '@deepseek-ai/dsh-invariants':
         specifier: workspace:^
         version: link:../../runtime-diagnostics/invariants
@@ -7674,7 +7747,39 @@ importers:
         specifier: workspace:^
         version: link:../../workspace/workspace
 
+  packages/tavern/memory:
+    dependencies:
+      '@deepseek-ai/dsh-brand':
+        specifier: workspace:^
+        version: link:../../util/brand
+      '@deepseek-ai/dsh-session':
+        specifier: workspace:^
+        version: link:../../core/session
+      '@deepseek-ai/dsh-tavern-assets':
+        specifier: workspace:^
+        version: link:../assets
+      '@deepseek-ai/dsh-tavern-shared':
+        specifier: workspace:^
+        version: link:../shared
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+
+  packages/tavern/shared:
+    devDependencies:
+      '@deepseek-ai/dsh-invariants':
+        specifier: workspace:^
+        version: link:../../runtime-diagnostics/invariants
+
   packages/tavern/state:
+    dependencies:
+      '@deepseek-ai/dsh-tavern-shared':
+        specifier: workspace:^
+        version: link:../shared
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^

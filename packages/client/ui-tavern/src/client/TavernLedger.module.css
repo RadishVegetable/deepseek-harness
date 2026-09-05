@@ -1,0 +1,418 @@
+.panel {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.panelHeader,
+.columnHeader,
+.sectionHeader,
+.sectionActions,
+.itemRow,
+.conflictActions,
+.addForm,
+.toastActions {
+  display: flex;
+  align-items: center;
+}
+
+.panelHeader,
+.columnHeader,
+.sectionHeader {
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.panelTitle,
+.columnTitle,
+.sectionTitle,
+.itemKey,
+.itemValue,
+.itemSource,
+.button,
+.addButton,
+.addInput,
+.renameInput,
+.conflict,
+.toast {
+  font-family: var(--tavern-font-ui);
+}
+
+.panelTitle {
+  margin: 0;
+  color: var(--tavern-text-1);
+  font-family: var(--tavern-font-story);
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.panelMeta,
+.columnCount,
+.itemSource,
+.sectionCount,
+.empty {
+  color: var(--tavern-text-3);
+  font-size: 11px;
+}
+
+.panelMeta {
+  margin: 3px 0 0;
+  line-height: 1.55;
+}
+
+.columns {
+  display: grid;
+  gap: 22px;
+}
+
+.column {
+  display: grid;
+  min-width: 0;
+  align-content: start;
+  gap: 10px;
+}
+
+.columnHeader {
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--tavern-line-strong);
+}
+
+.columnTitle {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  margin: 0;
+  color: var(--tavern-text-2);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.08em;
+}
+
+.columnTitle[data-scope='world'] {
+  color: var(--tavern-teal);
+}
+
+.columnDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--tavern-copper);
+}
+
+.columnTitle[data-scope='world'] .columnDot {
+  background: var(--tavern-teal);
+}
+
+.sectionList {
+  display: grid;
+  gap: 10px;
+}
+
+.section {
+  min-width: 0;
+  border: 1px solid var(--tavern-line-strong);
+  border-radius: 10px;
+  background: var(--tavern-bg-surface);
+  box-shadow: var(--tavern-shadow-1);
+  transition: border-color var(--tavern-t-med), background var(--tavern-t-med), transform var(--tavern-t-med);
+}
+
+.section:hover,
+.section:focus-within {
+  border-color: var(--tavern-copper-dim);
+  background: var(--tavern-bg-elevated);
+}
+
+.section[data-conflict='true'] {
+  border-color: var(--tavern-red);
+  animation: conflictPulse 1.8s ease-in-out infinite;
+}
+
+.section[data-dragging='true'] {
+  cursor: grabbing;
+  opacity: 0.72;
+  transform: scale(0.99);
+}
+
+.sectionHeader {
+  min-height: 44px;
+  padding: 6px 8px 6px 11px;
+}
+
+.sectionHeading {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 8px;
+}
+
+.dragHandle,
+.sectionButton,
+.itemButton,
+.button {
+  display: inline-grid;
+  place-items: center;
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--tavern-text-3);
+  background: transparent;
+  cursor: pointer;
+  transition: color var(--tavern-t-fast), border-color var(--tavern-t-fast), background var(--tavern-t-fast);
+}
+
+.dragHandle {
+  min-width: 44px;
+  min-height: 44px;
+  cursor: grab;
+  font-size: 16px;
+  letter-spacing: -3px;
+}
+
+.sectionButton {
+  min-width: 44px;
+  min-height: 44px;
+  font-size: 13px;
+}
+
+.sectionButton:hover,
+.sectionButton:focus-visible,
+.dragHandle:hover,
+.dragHandle:focus-visible,
+.itemButton:hover,
+.itemButton:focus-visible,
+.button:hover,
+.button:focus-visible {
+  border-color: var(--tavern-line-strong);
+  color: var(--tavern-copper-soft);
+  background: var(--tavern-bg-hover);
+}
+
+.sectionTitle {
+  overflow: hidden;
+  margin: 0;
+  color: var(--tavern-text-1);
+  font-family: var(--tavern-font-story);
+  font-size: 15px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sectionCount {
+  flex: 0 0 auto;
+  padding: 2px 6px;
+  border: 1px solid var(--tavern-line-strong);
+  border-radius: 99px;
+}
+
+.sectionActions {
+  gap: 1px;
+  opacity: 0;
+  transition: opacity var(--tavern-t-fast);
+}
+
+.section:hover .sectionActions,
+.section:focus-within .sectionActions,
+.sectionActions:focus-within {
+  opacity: 1;
+}
+
+.renameInput,
+.addInput {
+  min-width: 0;
+  min-height: 44px;
+  padding: 6px 9px;
+  border: 1px solid var(--tavern-copper);
+  border-radius: 6px;
+  outline: 0;
+  color: var(--tavern-text-1);
+  background: var(--tavern-bg-void);
+}
+
+.items {
+  display: grid;
+  gap: 0;
+  padding: 0 11px 10px;
+}
+
+.itemRow {
+  min-width: 0;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 9px 0;
+  border-top: 1px solid var(--tavern-line);
+}
+
+.itemCopy {
+  display: grid;
+  min-width: 0;
+  flex: 1 1 auto;
+  gap: 4px;
+}
+
+.itemKey {
+  color: var(--tavern-copper-soft);
+  font-size: 11px;
+}
+
+.itemValue {
+  margin: 0;
+  color: var(--tavern-text-2);
+  font-family: var(--tavern-font-story);
+  font-size: 14px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.itemSource {
+  display: inline-flex;
+  gap: 6px;
+}
+
+.itemButton {
+  min-width: 44px;
+  min-height: 44px;
+  opacity: 0;
+}
+
+.itemRow:hover .itemButton,
+.itemRow:focus-within .itemButton {
+  opacity: 1;
+}
+
+.conflict {
+  margin: 0 11px 10px;
+  padding: 11px;
+  border: 1px solid rgb(201 90 67 / 56%);
+  border-radius: 7px;
+  color: var(--tavern-text-2);
+  background: rgb(124 59 45 / 22%);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.conflict strong {
+  display: block;
+  margin-bottom: 4px;
+  color: var(--tavern-red);
+}
+
+.conflictValue {
+  color: var(--tavern-text-1);
+}
+
+.conflictActions {
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.conflictKeep,
+.conflictDrop {
+  min-height: 44px;
+  padding: 0 11px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.conflictKeep {
+  border: 1px solid var(--tavern-copper);
+  color: var(--tavern-bg-void);
+  background: var(--tavern-copper);
+}
+
+.conflictDrop {
+  border: 1px solid var(--tavern-red-soft);
+  color: var(--tavern-text-1);
+  background: transparent;
+}
+
+.addButton {
+  justify-content: flex-start;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px dashed var(--tavern-line-strong);
+  color: var(--tavern-text-3);
+  font-size: 12px;
+}
+
+.addButton:hover,
+.addButton:focus-visible {
+  border-color: var(--tavern-copper-dim);
+  color: var(--tavern-copper-soft);
+}
+
+.addForm {
+  gap: 7px;
+}
+
+.addForm .addInput {
+  flex: 1 1 auto;
+}
+
+.empty {
+  margin: 0;
+  padding: 14px 4px;
+  line-height: 1.7;
+}
+
+.toast {
+  position: fixed;
+  right: 22px;
+  bottom: 22px;
+  z-index: 60;
+  max-width: min(360px, calc(100vw - 44px));
+  padding: 12px 14px;
+  border: 1px solid var(--tavern-copper-dim);
+  border-radius: 8px;
+  color: var(--tavern-text-1);
+  background: var(--tavern-bg-elevated);
+  box-shadow: var(--tavern-shadow-2);
+  font-size: 12px;
+}
+
+.toastActions {
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.toastAction {
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--tavern-copper);
+  border-radius: 6px;
+  color: var(--tavern-copper-soft);
+  background: transparent;
+  cursor: pointer;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--tavern-copper-soft);
+  outline-offset: 2px;
+}
+
+@keyframes conflictPulse {
+  0%,
+  100% { box-shadow: 0 0 0 0 rgb(201 90 67 / 0%); }
+  50% { box-shadow: 0 0 0 3px rgb(201 90 67 / 20%); }
+}
+
+@media (min-width: 1100px) {
+  .columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .section,
+  .sectionActions,
+  .button,
+  .itemButton { transition: none; }
+  .section[data-conflict='true'] { animation: none; }
+}

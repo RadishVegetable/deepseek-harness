@@ -3,9 +3,7 @@
 import { useEffect, useSyncExternalStore } from 'react'
 import clsx from 'clsx'
 import type { SessionId, SessionListState, SessionSummary } from '@deepseek-ai/dsh-client-runtime/client'
-import type {
-  ChatNodeSlotRenderer, ConversationSessionHeaderSlotProps, ConversationSessionSlotProps,
-} from '../contract/slots.ts'
+import type { ConversationSessionHeaderSlotProps, ConversationSessionSlotProps } from '../contract/slots.ts'
 import type { ViewTab } from '../contract/views.ts'
 import css from './ConversationRoot.module.css'
 
@@ -172,7 +170,7 @@ export function ConversationSession({
       {active !== undefined && renderSlot('conversation.view', {
         inspect,
         onInspectDone: () => { actions.setInspect(null) },
-        renderChatNode: renderSlot as unknown as ChatNodeSlotRenderer,
+        renderChatNode: renderSlot,
       }, { only: active.id })}
     </div>
   )

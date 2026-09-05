@@ -1,6 +1,7 @@
 /** Pure observer-aware context filtering, ordering, deduplication, and packing. */
 
 import { matchWorldInfo } from './world-info.ts'
+import { compareSourceProvenance, compareStrings } from './ordering.ts'
 import type {
   Authority,
   CompileContextInput,
@@ -33,10 +34,6 @@ interface CompileCandidate<T> {
   readonly matchKind?: 'primary' | 'secondary'
   readonly matchedKeys?: readonly string[]
   readonly matchCount: number
-}
-
-function compareStrings(left: string, right: string): number {
-  return left < right ? -1 : left > right ? 1 : 0
 }
 
 function compareObservers(left: Observer, right: Observer): number {
@@ -94,11 +91,7 @@ function occurrenceOrder<T>(left: SourceOccurrence<T>, right: SourceOccurrence<T
   if (keyOrder !== 0) return keyOrder
   const originOrder = left.origin === right.origin ? 0 : left.origin === 'source' ? -1 : 1
   if (originOrder !== 0) return originOrder
-  const provenanceOrder = compareStrings(left.source.provenance.kind, right.source.provenance.kind)
-  if (provenanceOrder !== 0) return provenanceOrder
-  const idOrder = compareStrings(left.source.provenance.id, right.source.provenance.id)
-  if (idOrder !== 0) return idOrder
-  return compareStrings(left.source.text, right.source.text)
+  return compareSourceProvenance(left.source, right.source)
 }
 
 function candidateMatchRank<T>(candidate: CompileCandidate<T>): number {
@@ -119,11 +112,7 @@ function candidateOrder<T>(left: CompileCandidate<T>, right: CompileCandidate<T>
   if (countOrder !== 0) return countOrder
   const keyOrder = compareStrings(left.source.key, right.source.key)
   if (keyOrder !== 0) return keyOrder
-  const provenanceOrder = compareStrings(left.source.provenance.kind, right.source.provenance.kind)
-  if (provenanceOrder !== 0) return provenanceOrder
-  const idOrder = compareStrings(left.source.provenance.id, right.source.provenance.id)
-  if (idOrder !== 0) return idOrder
-  return compareStrings(left.source.text, right.source.text)
+  return compareSourceProvenance(left.source, right.source)
 }
 
 function validateBudget(budget: CompileContextInput['budget']): void {
@@ -224,6 +213,7 @@ export function compileContext<T>(input: CompileContextInput<T>): CompiledContex
     const matches = matchWorldInfo({
       text: input.worldInfo.text,
       entries: eligibleWorld.map(occurrence => occurrence.entry),
+      ...(input.worldInfo.probabilityRoll === undefined ? {} : { probabilityRoll: input.worldInfo.probabilityRoll }),
     })
     for (const match of matches) {
       matchedEntries.add(match.entry)

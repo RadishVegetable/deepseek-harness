@@ -1,4 +1,4 @@
-/** Client-side editors and inspection panels for the Tavern workbench. */
+/** Client-side editors and inspection panels for secondary Tavern tools. */
 
 import type {
   AssetId,
@@ -6,37 +6,88 @@ import type {
   PromptAssetBaseline,
   StoryState,
   StoryStateChange,
-  TavernMemoryEntry,
-  TavernMemoryInput,
+  TavernSessionSelection,
+  TavernGmResponseInspection,
   TavernStoryStateInspection,
   TavernSwipeInspection,
   TavernSwipeSelectionInput,
   WorldInfoAsset,
 } from '@deepseek-ai/dsh-tavern-host/client'
 import type { RequestView, SessionId } from '@deepseek-ai/dsh-client-runtime/client'
-import type { TavernAssetsRemote } from './index.ts'
+import type { TavernAssetsRemote, TavernContextActivation, TavernContextDecision } from './index.ts'
 import type { TavernKey } from './locales.ts'
-import { useEffect, useMemo, useState, type ChangeEvent } from 'react'
+import { slug } from '@deepseek-ai/dsh-tavern-shared'
+import { IconTrashOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { useEffect, useMemo, useState, type ChangeEvent, type ReactElement } from 'react'
 import css from './TavernView.module.css'
 
 type Translate = (key: TavernKey) => string
+
+/**
+ * Two-step inline confirm for destructive actions: the first click arms the
+ * button (label swaps to the confirm copy, auto-disarms after a short delay),
+ * the second click fires. Replaces `window.confirm`, which is silently
+ * suppressed in some embedded webviews and left delete buttons feeling dead.
+ */
+export function ConfirmDeleteButton({
+  label, confirmLabel, className, icon, disabled, onConfirm,
+}: {
+  readonly label: string
+  readonly confirmLabel: string
+  readonly className: string | undefined
+  readonly icon?: ReactElement
+  readonly disabled?: boolean
+  readonly onConfirm: () => void
+}): React.ReactElement {
+  const [armed, setArmed] = useState(false)
+  useEffect(() => {
+    if (!armed) return
+    const timer = window.setTimeout(() => { setArmed(false) }, 4000)
+    return () => { window.clearTimeout(timer) }
+  }, [armed])
+  return <button
+    type="button"
+    className={className}
+    data-armed={armed || undefined}
+    disabled={disabled}
+    onClick={(event) => {
+      // preventDefault keeps the click from toggling a surrounding <label>.
+      event.preventDefault()
+      event.stopPropagation()
+      if (armed) {
+        setArmed(false)
+        onConfirm()
+      } else {
+        setArmed(true)
+      }
+    }}
+  >
+    {icon}
+    <span>{armed ? confirmLabel : label}</span>
+  </button>
+}
 
 interface AssetEditorProps {
   readonly characters: readonly CharacterAsset[]
   readonly worldInfoLibrary: readonly WorldInfoAsset[]
   readonly character: CharacterAsset | null
+  readonly sessionId?: SessionId
   readonly tavernAssets: TavernAssetsRemote
   readonly t: Translate
-  readonly onCharacterUpdated: (asset: CharacterAsset) => Promise<void>
-  readonly onWorldInfoUpdated: (asset: WorldInfoAsset) => Promise<void>
+  readonly onJourneyUpdated?: (selection: TavernSessionSelection) => Promise<void>
+  readonly onAssetsUpdated?: () => Promise<void>
   readonly onError: () => void
 }
 
 /** Edit the retained source JSON for the selected Character Card or World Info. */
 export function TavernAssetEditor({
   characters, worldInfoLibrary, character, tavernAssets, t,
-  onCharacterUpdated, onWorldInfoUpdated, onError,
+  sessionId, onJourneyUpdated, onAssetsUpdated, onError,
 }: AssetEditorProps): React.ReactElement {
+  const [characterId, setCharacterId] = useState<AssetId | ''>(character?.id ?? characters[0]?.id ?? '')
+  const selectedCharacter = sessionId === undefined
+    ? characters.find(asset => asset.id === characterId) ?? character
+    : character
   const [worldInfoId, setWorldInfoId] = useState<AssetId | ''>('')
   const worldInfo = worldInfoLibrary.find(asset => asset.id === worldInfoId) ?? null
   const [characterDraft, setCharacterDraft] = useState('')
@@ -45,8 +96,14 @@ export function TavernAssetEditor({
   const [status, setStatus] = useState('')
 
   useEffect(() => {
+    setCharacterId(character?.id ?? (characters[0]?.id ?? ''))
     setCharacterDraft(character === null ? '' : JSON.stringify(character.sourceData, null, 2))
   }, [character])
+
+  useEffect(() => {
+    if (characterId !== '' && characters.some(asset => asset.id === characterId)) return
+    setCharacterId(characters[0]?.id ?? '')
+  }, [characterId, characters])
 
   useEffect(() => {
     if (worldInfoId !== '' && worldInfoLibrary.some(asset => asset.id === worldInfoId)) return
@@ -58,12 +115,19 @@ export function TavernAssetEditor({
   }, [worldInfo])
 
   async function updateCharacter(): Promise<void> {
-    if (character === null) return
+    if (selectedCharacter === null) return
     setSaving(true)
     try {
-      const result = await tavernAssets.updateCharacter(characterDraft, { id: character.id })
-      if (!result.ok) throw new Error(result.error.message)
-      await onCharacterUpdated(result.value)
+      if (sessionId === undefined) {
+        if (tavernAssets.updateCharacter === undefined) throw new Error('Character asset update is unavailable')
+        const result = await tavernAssets.updateCharacter(characterDraft, { id: String(selectedCharacter.id) })
+        if (!result.ok) throw new Error(result.error.message)
+        await onAssetsUpdated?.()
+      } else {
+        const result = await tavernAssets.editJourneyCharacter(sessionId, characterDraft)
+        if (!result.ok) throw new Error(result.error.message)
+        await onJourneyUpdated?.(result.value)
+      }
       setStatus(t('editor.saved'))
     } catch {
       setStatus(t('editor.invalid'))
@@ -77,10 +141,34 @@ export function TavernAssetEditor({
     if (worldInfo === null) return
     setSaving(true)
     try {
-      const result = await tavernAssets.updateWorldInfo(worldDraft, { id: worldInfo.id })
-      if (!result.ok) throw new Error(result.error.message)
-      await onWorldInfoUpdated(result.value)
+      if (sessionId === undefined) {
+        if (tavernAssets.updateWorldInfo === undefined) throw new Error(t('editor.invalid'))
+        const result = await tavernAssets.updateWorldInfo(worldDraft, { id: String(worldInfo.id) })
+        if (!result.ok) throw new Error(result.error.message)
+        await onAssetsUpdated?.()
+      } else {
+        const result = await tavernAssets.editJourneyWorldInfo(sessionId, worldInfo.id, worldDraft)
+        if (!result.ok) throw new Error(result.error.message)
+        await onJourneyUpdated?.(result.value)
+      }
       setStatus(t('editor.saved'))
+    } catch {
+      setStatus(t('editor.invalid'))
+      onError()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deleteLibraryAsset(asset: CharacterAsset | WorldInfoAsset): Promise<void> {
+    const deleteAssetRemote = tavernAssets.deleteAsset
+    if (sessionId !== undefined || deleteAssetRemote === undefined) return
+    setSaving(true)
+    try {
+      const result = await deleteAssetRemote(asset.id)
+      if (!result.ok || !result.value) throw new Error(result.ok ? 'Asset was not deleted' : result.error.message)
+      await onAssetsUpdated?.()
+      setStatus(t('editor.deleted'))
     } catch {
       setStatus(t('editor.invalid'))
       onError()
@@ -91,11 +179,15 @@ export function TavernAssetEditor({
 
   async function exportAsset(asset: CharacterAsset | WorldInfoAsset): Promise<void> {
     try {
-      const result = asset.kind === 'character'
-        ? await tavernAssets.exportCharacter(asset.id)
-        : await tavernAssets.exportWorldInfo(asset.id)
-      if (!result.ok) throw new Error(result.error.message)
-      downloadJson(`${safeFilename(asset.name)}.json`, result.value)
+      if (sessionId === undefined) {
+        const result = asset.kind === 'character'
+          ? await tavernAssets.exportCharacter(asset.id)
+          : await tavernAssets.exportWorldInfo(asset.id)
+        if (!result.ok) throw new Error(result.error.message)
+        downloadJson(`${safeFilename(asset.name)}.json`, result.value)
+      } else {
+        downloadJson(`${safeFilename(asset.name)}.json`, JSON.stringify(asset.sourceData, null, 2))
+      }
       setStatus(t('editor.exported'))
     } catch {
       setStatus(t('editor.invalid'))
@@ -112,19 +204,41 @@ export function TavernAssetEditor({
       <div className={css.editorPanel}>
         <div className={css.panelHeader}>
           <h3 className={css.subheading}>{t('library.character')}</h3>
-          {character !== null && <button
-            type="button"
-            className={css.subtleButton}
-            onClick={() => { void exportAsset(character) }}
-            disabled={saving}
-          >{t('editor.export')}</button>}
+          {selectedCharacter !== null && <div className={css.formRow}>
+            <button type="button" className={css.subtleButton} onClick={() => { void exportAsset(selectedCharacter) }} disabled={saving}>{t('editor.export')}</button>
+            {sessionId === undefined && tavernAssets.deleteAsset !== undefined && <ConfirmDeleteButton
+              className={css.subtleButton}
+              icon={<IconTrashOutline16 />}
+              label={t('editor.delete')}
+              confirmLabel={t('editor.deleteConfirm')}
+              disabled={saving}
+              onConfirm={() => { void deleteLibraryAsset(selectedCharacter) }}
+            />}
+          </div>}
         </div>
-        {character === null ? <p className={css.empty}>{t('editor.noCharacter')}</p> : <>
+        {characters.length > 0 && <label className={css.field}>
+          <span>{t('editor.characterSelect')}</span>
+          <select
+            className={css.select}
+            value={selectedCharacter?.id ?? ''}
+            onChange={(event) => {
+              const next = characters.find(asset => asset.id === event.target.value)
+              setCharacterId(next?.id ?? '')
+              setCharacterDraft(next === undefined ? '' : JSON.stringify(next.sourceData, null, 2))
+            }}
+            disabled={saving || sessionId !== undefined}
+          >
+            <option value="">{t('editor.noCharacter')}</option>
+            {characters.map(asset => <option key={asset.id} value={asset.id}>{asset.name}</option>)}
+          </select>
+        </label>}
+        {selectedCharacter === null ? <p className={css.empty}>{t('editor.noCharacter')}</p> : <>
           <label className={css.field}>
             <span>{t('editor.sourceJson')}</span>
             <textarea
               className={css.editorTextarea}
               value={characterDraft}
+              readOnly={false}
               onChange={(event: ChangeEvent<HTMLTextAreaElement>) => { setCharacterDraft(event.target.value) }}
             />
           </label>
@@ -134,12 +248,17 @@ export function TavernAssetEditor({
       <div className={css.editorPanel}>
         <div className={css.panelHeader}>
           <h3 className={css.subheading}>{t('library.worldInfo')}</h3>
-          {worldInfo !== null && <button
-            type="button"
-            className={css.subtleButton}
-            onClick={() => { void exportAsset(worldInfo) }}
-            disabled={saving}
-          >{t('editor.export')}</button>}
+          {worldInfo !== null && <div className={css.formRow}>
+            <button type="button" className={css.subtleButton} onClick={() => { void exportAsset(worldInfo) }} disabled={saving}>{t('editor.export')}</button>
+            {sessionId === undefined && tavernAssets.deleteAsset !== undefined && <ConfirmDeleteButton
+              className={css.subtleButton}
+              icon={<IconTrashOutline16 />}
+              label={t('editor.delete')}
+              confirmLabel={t('editor.deleteConfirm')}
+              disabled={saving}
+              onConfirm={() => { void deleteLibraryAsset(worldInfo) }}
+            />}
+          </div>}
         </div>
         <label className={css.field}>
           <span>{t('editor.worldSelect')}</span>
@@ -159,6 +278,7 @@ export function TavernAssetEditor({
             <textarea
               className={css.editorTextarea}
               value={worldDraft}
+              readOnly={false}
               onChange={(event: ChangeEvent<HTMLTextAreaElement>) => { setWorldDraft(event.target.value) }}
             />
           </label>
@@ -167,105 +287,6 @@ export function TavernAssetEditor({
       </div>
     </div>
     {characters.length === 0 && worldInfoLibrary.length === 0 && <p className={css.empty}>{t('editor.noAssets')}</p>}
-  </section>
-}
-
-interface MemoryEditorProps {
-  readonly sessionId: SessionId
-  readonly tavernAssets: TavernAssetsRemote
-  readonly t: Translate
-  readonly onError: () => void
-}
-
-type MemoryDraft = { id: string; text: string; level: TavernMemoryEntry['level']; label: string }
-
-const EMPTY_MEMORY: MemoryDraft = { id: '', text: '', level: 'persistent', label: '' }
-
-/** Load and edit durable session memories through the Tavern Remote. */
-export function TavernMemoryEditor({ sessionId, tavernAssets, t, onError }: MemoryEditorProps): React.ReactElement {
-  const [memories, setMemories] = useState<readonly TavernMemoryEntry[]>([])
-  const [draft, setDraft] = useState<MemoryDraft>(EMPTY_MEMORY)
-  const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-
-  async function refresh(): Promise<void> {
-    setLoading(true)
-    try {
-      const result = await tavernAssets.listMemory(sessionId)
-      if (!result.ok) throw new Error(result.error.message)
-      setMemories(result.value)
-    } catch {
-      onError()
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  useEffect(() => { void refresh() }, [sessionId, tavernAssets])
-
-  async function remember(input: TavernMemoryInput, reset: boolean): Promise<void> {
-    if (input.text.trim().length === 0) return
-    setSaving(true)
-    try {
-      const result = await tavernAssets.remember(sessionId, input)
-      if (!result.ok) throw new Error(result.error.message)
-      setMemories((current) => {
-        const index = current.findIndex(memory => memory.id === result.value.id)
-        if (index === -1) return [...current, result.value]
-        return current.map((memory, candidate) => candidate === index ? result.value : memory)
-      })
-      if (reset) setDraft(EMPTY_MEMORY)
-    } catch {
-      onError()
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  function submitMemory(): void {
-    const input: TavernMemoryInput = {
-      text: draft.text,
-      level: draft.level,
-      label: draft.label || null,
-      ...(draft.id ? { id: draft.id } : {}),
-    }
-    void remember(input, true)
-  }
-
-  return <section className={css.section}>
-    <div className={css.panelHeader}>
-      <h2 className={css.heading}>{t('memory.title')}</h2>
-      {loading && <span className={css.note}>{t('memory.loading')}</span>}
-    </div>
-    <div className={css.memoryForm}>
-      <label className={css.field}><span>{t('memory.text')}</span><textarea
-        className={css.compactTextarea}
-        value={draft.text}
-        onChange={(event) => { setDraft({ ...draft, text: event.target.value }) }}
-      /></label>
-      <div className={css.formRow}>
-        <label className={css.field}><span>{t('memory.level')}</span><select
-          className={css.select}
-          value={draft.level}
-          onChange={(event) => { setDraft({ ...draft, level: event.target.value as MemoryDraft['level'] }) }}
-        >
-          <option value="pinned">pinned</option><option value="persistent">persistent</option><option value="scene">scene</option>
-        </select></label>
-        <label className={css.field}><span>{t('memory.label')}</span><input
-          className={css.input}
-          value={draft.label}
-          onChange={(event) => { setDraft({ ...draft, label: event.target.value }) }}
-        /></label>
-      </div>
-      <button type="button" className={css.importButton} onClick={submitMemory} disabled={saving || draft.text.trim().length === 0}>{draft.id ? t('memory.update') : t('memory.add')}</button>
-    </div>
-    <div className={css.memoryList}>
-      {memories.map(memory => <div className={css.memoryRow} key={memory.id}>
-        <div className={css.memoryCopy}><strong>{memory.label || memory.id}</strong><span>{memory.level}</span><p>{memory.text}</p></div>
-        <button type="button" className={css.subtleButton} onClick={() => { setDraft({ id: memory.id, text: memory.text, level: memory.level, label: memory.label ?? '' }) }}>{t('memory.edit')}</button>
-      </div>)}
-      {!loading && memories.length === 0 && <p className={css.empty}>{t('memory.empty')}</p>}
-    </div>
   </section>
 }
 
@@ -325,7 +346,7 @@ export function TavernStoryStateEditor({ sessionId, tavernAssets, t, onError }: 
   function saveLocation(): void {
     const name = locationName.trim()
     if (name.length === 0) return
-    const id = locationId.trim() || slug(name)
+    const id = locationId.trim() || slug(name, 'location')
     const location: StoryLocationValue = {
       id: id as StoryLocationValue['id'],
       name,
@@ -494,17 +515,103 @@ export function TavernSwipeEditor({
 interface PromptInspectorProps {
   readonly latest: Extract<RequestView, { purpose: 'assistant' }> | undefined
   readonly baseline: PromptAssetBaseline | undefined
+  /** Assistant text projected from the matching Trajectory node, when available. */
+  readonly output?: string | undefined
+  /** Parsed GM envelopes retained by the Host for response and update auditing. */
+  readonly gmResponses?: readonly TavernGmResponseInspection[]
+  /** Latest Host context activation ledger, retained for diagnostics only. */
+  readonly contextActivation?: TavernContextActivation | null
   readonly t: Translate
 }
 
+function requestStatusLabel(status: Extract<RequestView, { purpose: 'assistant' }>['status'], t: Translate): string {
+  switch (status) {
+    case 'running': return t('prompt.statusRunning')
+    case 'complete': return t('prompt.statusComplete')
+    case 'error': return t('prompt.statusError')
+  }
+}
+
+function formatInspectorValue(value: unknown): string {
+  try {
+    return JSON.stringify(value, null, 2)
+  } catch {
+    return String(value)
+  }
+}
+
+const CONTEXT_REASON_KEYS: Record<TavernContextDecision['reason'], TavernKey> = {
+  included: 'prompt.reasonIncluded',
+  observer: 'prompt.reasonObserver',
+  visibility: 'prompt.reasonVisibility',
+  authority: 'prompt.reasonAuthority',
+  branch: 'prompt.reasonBranch',
+  invalid: 'prompt.reasonInvalid',
+  'not-matched': 'prompt.reasonNotMatched',
+  group: 'prompt.reasonGroup',
+  duplicate: 'prompt.reasonDuplicate',
+  'budget-characters': 'prompt.reasonBudgetCharacters',
+  'budget-tokens': 'prompt.reasonBudgetTokens',
+  'budget-both': 'prompt.reasonBudgetBoth',
+}
+
+function contextReasonLabel(reason: TavernContextDecision['reason'], t: Translate): string {
+  return t(CONTEXT_REASON_KEYS[reason])
+}
+
+function contextUsageLabel(usage: TavernContextActivation['usage'] | undefined, t: Translate): string {
+  if (usage === undefined) return t('prompt.noUsage')
+  const tokens = usage.tokens === undefined ? '' : ` · ${t('prompt.tokens')} ${usage.tokens}`
+  return `${t('prompt.characters')} ${usage.characters}${tokens}`
+}
+
+function ContextLedgerPanel({ activation, t }: {
+  activation: TavernContextActivation | null | undefined
+  t: Translate
+}): React.ReactElement {
+  const ledger = activation?.ledger ?? []
+  return <details className={css.inspectorPanel} open>
+    <summary>{t('prompt.activation')} ({ledger.length})</summary>
+    {activation === null || activation === undefined || ledger.length === 0
+      ? <p className={css.empty}>{t('prompt.noActivation')}</p>
+      : <div className={css.inspectorOutput}>
+        <div className={css.requestMeta}><strong>{t('prompt.ledgerUsage')}</strong><span>{contextUsageLabel(activation.usage, t)}</span></div>
+        <div className={css.inspectorList}>{ledger.map(decision => <article className={css.sourceRow} key={`${decision.order}:${decision.key}`} data-ledger-outcome={decision.outcome}>
+          <div className={css.requestMeta}>
+            <strong>{decision.outcome === 'included' ? t('prompt.included') : t('prompt.excluded')}</strong>
+            <span>#{decision.order}</span>
+          </div>
+          <code className={css.auditId}>{decision.key}</code>
+          <p><strong>{t('prompt.reason')}: </strong>{contextReasonLabel(decision.reason, t)}</p>
+          {decision.matchedKeys !== undefined && decision.matchedKeys.length > 0 && <p><strong>{t('prompt.matchedKeys')}: </strong>{decision.matchedKeys.join(', ')}</p>}
+          <div className={css.requestMeta}>
+            <span>{t('prompt.attempted')}: {contextUsageLabel(decision.attempted, t)}</span>
+            <span>{t('prompt.accepted')}: {contextUsageLabel(decision.accepted, t)}</span>
+          </div>
+        </article>)}</div>
+      </div>}
+  </details>
+}
+
 /** Show model-visible prompt sections with asset source identifiers. */
-export function PromptInspector({ latest, baseline, t }: PromptInspectorProps): React.ReactElement {
+export function PromptInspector({
+  latest,
+  baseline,
+  output,
+  gmResponses = [],
+  contextActivation,
+  t,
+}: PromptInspectorProps): React.ReactElement {
   const references = baseline?.references ?? []
   const worldEntries = baseline?.worldInfoEntries ?? []
   const characterSections = baseline?.characterSections ?? []
   const tools = latest?.prompt?.tools ?? []
   const system = latest?.prompt?.system ?? ''
-  const sourceSummary = useMemo(() => references.map(reference => `${reference.kind}: ${reference.assetId} (${reference.version.format})`), [references])
+  const requestConfig = latest?.prompt?.config ?? latest?.requestConfig
+  const parsedResponse = latest?.resultSeq === undefined
+    ? undefined
+    : gmResponses.find(response => response.assistantSeq === latest.resultSeq)
+  const sourceSummary = useMemo(() => references.map(reference => `${reference.kind === 'character' ? t('asset.characterCard') : t('asset.worldInfo')}: ${reference.assetId}`), [references, t])
 
   return <section className={css.section}>
     <div className={css.panelHeader}>
@@ -512,9 +619,47 @@ export function PromptInspector({ latest, baseline, t }: PromptInspectorProps): 
       <span className={css.note}>{latest === undefined ? t('prompt.empty') : t('prompt.latest')}</span>
     </div>
     {latest === undefined ? <p className={css.empty}>{t('prompt.empty')}</p> : <div className={css.inspectorGrid}>
-      <details className={css.inspectorPanel} open><summary>{t('prompt.system')}</summary><pre className={css.prompt}>{system || t('prompt.empty')}</pre></details>
+      <div className={`${css.inspectorPanel} ${css.inspectorPanelWide}`}>
+        <h3 className={css.inspectorHeading}>{t('prompt.request')}</h3>
+        <dl className={css.inspectorFacts}>
+          <div className={css.inspectorFact}><dt>{t('prompt.turn')}</dt><dd>{latest.turn}</dd></div>
+          <div className={css.inspectorFact}><dt>{t('prompt.step')}</dt><dd>{latest.step}</dd></div>
+          <div className={css.inspectorFact}><dt>{t('prompt.start')}</dt><dd>#{latest.startSeq}</dd></div>
+          <div className={css.inspectorFact}><dt>{t('prompt.status')}</dt><dd>{requestStatusLabel(latest.status, t)}</dd></div>
+          <div className={css.inspectorFact}><dt>{t('prompt.provider')}</dt><dd>{latest.provenance?.provider ?? requestConfig?.provider ?? t('prompt.unknown')}</dd></div>
+          <div className={css.inspectorFact}><dt>{t('prompt.model')}</dt><dd>{latest.provenance?.model ?? requestConfig?.model ?? t('prompt.unknown')}</dd></div>
+          <div className={css.inspectorFact}><dt>{t('prompt.result')}</dt><dd>{latest.resultSeq === undefined ? t('prompt.noResult') : `#${latest.resultSeq}`}</dd></div>
+        </dl>
+        {latest.error !== undefined && <div className={css.inspectorError}><strong>{t('prompt.error')}</strong><p>{latest.error}</p></div>}
+      </div>
+      <details className={css.inspectorPanel} open><summary>{t('prompt.system')}</summary><pre className={css.prompt}>{system || t('prompt.noPrompt')}</pre></details>
       <details className={css.inspectorPanel} open><summary>{t('prompt.tools')} ({tools.length})</summary>
         {tools.length === 0 ? <p className={css.empty}>{t('prompt.noTools')}</p> : <div className={css.inspectorList}>{tools.map(tool => <details key={tool.name}><summary>{tool.name}</summary><p>{tool.description}</p><pre className={css.prompt}>{JSON.stringify(tool.parameters, null, 2)}</pre></details>)}</div>}
+      </details>
+      <details className={css.inspectorPanel} open><summary>{t('prompt.output')}</summary>
+        <div className={css.inspectorOutput}>
+          {output === undefined || output.trim().length === 0
+            ? <p>{t('prompt.outputUnavailable')}</p>
+            : <><p>{t('prompt.outputRecorded')}</p><pre className={css.prompt}>{output}</pre></>}
+          {latest.resultSeq !== undefined && <p className={css.inspectorResult}><strong>{t('prompt.resultRecorded')}</strong> #{latest.resultSeq}</p>}
+          {latest.usage !== undefined && <><strong>{t('prompt.usage')}</strong><pre className={css.prompt}>{formatInspectorValue(latest.usage)}</pre></>}
+          {latest.usage === undefined && <p className={css.empty}>{t('prompt.noUsage')}</p>}
+        </div>
+      </details>
+      <details className={css.inspectorPanel} open><summary>{t('prompt.gmResponse')}</summary>
+        {parsedResponse === undefined ? <p className={css.empty}>{t('prompt.noGmResponse')}</p> : <div className={css.inspectorOutput}>
+          <div className={css.requestMeta}>
+            <span>{t('prompt.gmEvent')} #{parsedResponse.eventSeq}</span>
+            <span>{t('prompt.assistant')} #{parsedResponse.assistantSeq}</span>
+            <span>{t('prompt.turn')} {parsedResponse.turn}</span>
+          </div>
+          <strong>{t('prompt.parsedStory')}</strong>
+          <pre className={css.prompt}>{parsedResponse.response.story}</pre>
+          <strong>{t('prompt.parsedUpdates')}</strong>
+          {parsedResponse.response.updates === undefined
+            ? <p className={css.empty}>{t('prompt.noUpdates')}</p>
+            : <pre className={css.prompt}>{formatInspectorValue(parsedResponse.response.updates)}</pre>}
+        </div>}
       </details>
       <details className={css.inspectorPanel} open><summary>{t('prompt.worldInfo')} ({worldEntries.length})</summary>
         {worldEntries.length === 0 ? <p className={css.empty}>{t('prompt.noWorldInfo')}</p> : <div className={css.inspectorList}>{worldEntries.map(entry => <div className={css.sourceRow} key={`${entry.sourceAssetId}:${entry.id}`}>
@@ -534,6 +679,7 @@ export function PromptInspector({ latest, baseline, t }: PromptInspectorProps): 
         </div>}
       </details>
     </div>}
+    <ContextLedgerPanel activation={contextActivation} t={t} />
   </section>
 }
 
@@ -550,8 +696,4 @@ function downloadJson(filename: string, text: string): void {
   anchor.download = filename
   anchor.click()
   if (createObjectUrl.startsWith('blob:') && typeof URL.revokeObjectURL === 'function') URL.revokeObjectURL(createObjectUrl)
-}
-
-function slug(value: string): string {
-  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'location'
 }

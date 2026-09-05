@@ -35,6 +35,7 @@ function character(id: string, name = 'Aria'): CharacterAsset {
     alternateGreetings: ['The archive is closed tonight.'],
     systemPrompt: 'Stay in character.',
     postHistoryInstructions: 'Keep the answer focused.',
+    characterBook: null,
     extensions: { vendor: 'example' },
   }
 }
@@ -76,7 +77,7 @@ describe('createAssetId', () => {
   })
 
   it('rejects blank IDs', () => {
-    expect(() => createAssetId('  ')).toThrowError(AssetRegistryError)
+    expect(() => createAssetId('  ')).toThrow(AssetRegistryError)
     expect(() => createAssetId('')).toThrow(/must not be empty/)
   })
 })
@@ -100,7 +101,7 @@ describe('AssetRegistry', () => {
   it('rejects duplicate IDs across character and World Book kinds', () => {
     const registry = new AssetRegistry()
     registry.register(character('shared'))
-    expect(() => registry.register(worldInfo('shared'))).toThrowError(
+    expect(() => registry.register(worldInfo('shared'))).toThrow(
       expect.objectContaining({ code: 'duplicate-id' }),
     )
   })
@@ -127,23 +128,37 @@ describe('AssetRegistry', () => {
     expect(registry.getCharacter(createAssetId('shared'))?.name).toBe('Second update')
   })
 
+  it('removes an asset and returns a detached rollback snapshot', () => {
+    const registry = new AssetRegistry()
+    registry.register(character('removable'))
+
+    const removed = registry.remove(createAssetId('removable'))
+
+    expect(removed?.id).toBe('removable')
+    expect(registry.getCharacter(createAssetId('removable'))).toBeUndefined()
+    if (removed === undefined) throw new Error('asset was not removed')
+    registry.replace(removed)
+    expect(registry.getCharacter(createAssetId('removable'))?.name).toBe('Aria')
+    expect(registry.remove(createAssetId('missing'))).toBeUndefined()
+  })
+
   it('rejects replacement across asset kinds', () => {
     const registry = new AssetRegistry()
     registry.register(character('shared'))
-    expect(() => registry.replace(worldInfo('shared'))).toThrowError(
+    expect(() => registry.replace(worldInfo('shared'))).toThrow(
       expect.objectContaining({ code: 'duplicate-id' }),
     )
   })
 
   it('rejects blank names and malformed source metadata', () => {
     const registry = new AssetRegistry()
-    expect(() => registry.register(character('blank-name', '  '))).toThrowError(
+    expect(() => registry.register(character('blank-name', '  '))).toThrow(
       expect.objectContaining({ code: 'invalid-name' }),
     )
     expect(() => registry.register({
       ...character('bad-source'),
       sourceReferences: [{ ...source, locator: '  ' }],
-    })).toThrowError(expect.objectContaining({ code: 'invalid-source-reference' }))
+    })).toThrow(expect.objectContaining({ code: 'invalid-source-reference' }))
   })
 
   it('rejects duplicate World Book entry IDs', () => {
@@ -153,7 +168,7 @@ describe('AssetRegistry', () => {
     expect(() => registry.register({
       ...asset,
       entries: [entry, { ...entry }],
-    })).toThrowError(expect.objectContaining({ code: 'duplicate-entry-id' }))
+    })).toThrow(expect.objectContaining({ code: 'duplicate-entry-id' }))
   })
 
   it('keeps registered snapshots detached from caller-owned arrays and objects', () => {
@@ -208,16 +223,36 @@ describe('AssetRegistry', () => {
     })
   })
 
+  it('collapses a standalone copy of an embedded Character Card World Book', () => {
+    const embedded = worldInfo('embedded-book', 'Embedded Book')
+    const card = {
+      ...character('character.with-book'),
+      characterBook: { ...embedded, id: createAssetId('character.with-book.character-book') },
+    }
+    const registry = new AssetRegistry()
+    registry.register(card)
+    registry.register(worldInfo('standalone-copy', 'Standalone Copy'))
+
+    const baseline = registry.select({
+      characterId: card.id,
+      worldInfoIds: [createAssetId('standalone-copy')],
+    })
+
+    expect(baseline.references).toHaveLength(3)
+    expect(baseline.worldInfoEntries).toHaveLength(1)
+    expect(baseline.worldInfoEntries[0]?.sourceAssetId).toBe('character.with-book.character-book')
+  })
+
   it('allows a characterless selection and reports missing or repeated assets', () => {
     const registry = new AssetRegistry()
     registry.register(worldInfo('world.archive'))
     expect(registry.select({ characterId: null, worldInfoIds: [] }).characterSections).toEqual([])
     expect(() => registry.select({ characterId: createAssetId('missing'), worldInfoIds: [] }))
-      .toThrowError(expect.objectContaining({ code: 'asset-not-found' }))
+      .toThrow(expect.objectContaining({ code: 'asset-not-found' }))
     expect(() => registry.select({
       characterId: null,
       worldInfoIds: [createAssetId('world.archive'), createAssetId('world.archive')],
-    })).toThrowError(expect.objectContaining({ code: 'duplicate-selection-id' }))
+    })).toThrow(expect.objectContaining({ code: 'duplicate-selection-id' }))
   })
 })
 

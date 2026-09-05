@@ -1753,6 +1753,21 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         parameters: [],
       },
       {
+        signature: 'readonly memoryConfig: ReturnType<typeof resolveMemoryConfig>',
+        description: 'Validated memory policy passed to every Journey runtime.',
+        parameters: [],
+      },
+      {
+        signature: 'readonly cleanerRoute: TavernAssetCleaningRoute | undefined',
+        description: 'Optional model route used to replace the deterministic cleaning view.',
+        parameters: [],
+      },
+      {
+        signature: 'readonly compactionEnabled: boolean',
+        description: 'Host compaction mounting policy.',
+        parameters: [],
+      },
+      {
         signature: '@Remote(\'listCharacters\') remoteListCharacters(): readonly CharacterAsset[]',
         description: 'List all imported Character Cards.',
         parameters: [],
@@ -1778,15 +1793,21 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: '@Remote(\'updateCharacter\') async remoteUpdateCharacter(input: string, options: TavernUpdateOptions): Promise<CharacterAsset>',
-        description: 'Replace one persisted Character Card under its existing ID.',
+        description: 'Replace one Character Card in the durable source registry.',
         parameters: [{ name: 'input', description: 'Character Card JSON text.' }, { name: 'options', description: 'Existing asset ID and optional source metadata.' }],
         returns: 'The persisted replacement asset.',
       },
       {
         signature: '@Remote(\'updateWorldInfo\') async remoteUpdateWorldInfo(input: string, options: TavernUpdateOptions): Promise<WorldInfoAsset>',
-        description: 'Replace one persisted World Info asset under its existing ID.',
+        description: 'Replace one World Book in the durable source registry.',
         parameters: [{ name: 'input', description: 'World Info JSON text.' }, { name: 'options', description: 'Existing asset ID and optional source metadata.' }],
         returns: 'The persisted replacement asset.',
+      },
+      {
+        signature: '@Remote(\'deleteAsset\') async remoteDeleteAsset(id: import(\'@deepseek-ai/dsh-tavern-assets/types\').AssetId): Promise<boolean>',
+        description: 'Delete one source asset from the durable registry.',
+        parameters: [{ name: 'id', description: 'Asset identifier to delete.' }],
+        returns: '`true` when the durable record was removed.',
       },
       {
         signature: '@Remote(\'exportCharacter\') remoteExportCharacter(id: import(\'@deepseek-ai/dsh-tavern-assets/types\').AssetId): string',
@@ -1807,16 +1828,64 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'The selected prompt baseline.',
       },
       {
-        signature: '@Remote(\'selectForSession\') remoteSelectForSession(agent: Agent, selection: AssetSelection): TavernSessionSelection',
-        description: 'Select assets for a live session and append the complete baseline to its log.',
-        parameters: [{ name: 'agent', description: 'Session owner receiving the selection event.' }, { name: 'selection', description: 'Asset IDs requested for the session.' }],
-        returns: 'The detached durable session selection.',
+        signature: '@Remote(\'selectForSession\') async remoteSelectForSession( agent: Agent, selection: AssetSelection, playerIdentity?: string | null, ): Promise<TavernSessionSelection>',
+        description: 'Select assets for a live session and append only their references to its log.',
+        parameters: [{ name: 'agent', description: 'Session owner receiving the selection event.' }, { name: 'selection', description: 'Asset IDs requested for the session.' }, { name: 'playerIdentity', description: 'Optional player-facing identity retained by the Journey.' }],
+        returns: 'The detached source selection resolved from the asset registry.',
       },
       {
-        signature: '@Remote(\'inspectSession\') remoteInspectSession(agent: Agent): TavernSessionSelection | null',
-        description: 'Read the latest durable asset selection for a live session.',
-        parameters: [{ name: 'agent', description: 'Session owner whose log is inspected.' }],
+        signature: '@Remote(\'bootstrapJourney\') async remoteBootstrapJourney( agent: Agent, selection: AssetSelection, playerIdentity?: string | null, ): Promise<TavernBootstrapJourneyResult>',
+        description: 'Start a Journey and materialize its authored assets as source-tracked facts.\n\nThe normalized fields returned by the optional model pass are used only to construct append-only `tavern/fact` events. The `assets-normalized` event records route metadata, while the fact stream remains the Journey memory source of truth.',
+        parameters: [{ name: 'agent', description: 'Session owner receiving the selection and authored facts.' }, { name: 'selection', description: 'Character Card and optional World Book selection.' }, { name: 'playerIdentity', description: 'Optional player-facing identity retained by the Journey.' }],
+        returns: 'The selected source projection and its current fact projection.',
+      },
+      {
+        signature: '@Remote(\'editJourneyCharacter\') remoteEditJourneyCharacter(agent: Agent, input: string): TavernSessionSelection',
+        description: 'Replace the Character Card copy inside the current Journey only.',
+        parameters: [{ name: 'agent', description: 'Session owner receiving the append-only asset event.' }, { name: 'input', description: 'Character Card JSON for the current Journey selection.' }],
+        returns: 'The updated Journey selection.',
+      },
+      {
+        signature: '@Remote(\'editJourneyWorldInfo\') remoteEditJourneyWorldInfo(agent: Agent, assetId: import(\'@deepseek-ai/dsh-tavern-assets/types\').AssetId, input: string): TavernSessionSelection',
+        description: 'Replace a World Book copy inside the current Journey only.',
+        parameters: [{ name: 'agent', description: 'Session owner receiving the append-only asset event.' }, { name: 'assetId', description: 'Selected standalone or embedded World Book ID.' }, { name: 'input', description: 'World Info JSON for the current Journey selection.' }],
+        returns: 'The updated Journey selection.',
+      },
+      {
+        signature: '@Remote(\'normalizeForSession\') async remoteNormalizeForSession(agent: Agent): Promise<TavernSessionSelection | null>',
+        description: 'Normalize the selected Journey assets once and append authored fact events.',
+        parameters: [{ name: 'agent', description: 'Session owner receiving the normalization event.' }],
+        returns: 'The current selected Journey, or null when nothing is selected.',
+      },
+      {
+        signature: '@Remote(\'inspectSession\') async remoteInspectSession(sessionId: SessionId): Promise<TavernSessionSelection | null>',
+        description: 'Read the latest durable asset selection for a session.',
+        parameters: [{ name: 'sessionId', description: 'Session whose complete durable log is inspected.' }],
         returns: 'The latest selection, or null when none is recorded.',
+      },
+      {
+        signature: '@Remote(\'inspectHistory\') async remoteInspectHistory(sessionId: SessionId): Promise<TavernHistoryEntry>',
+        description: 'Read a cold Tavern session for the history page without starting its Agent.',
+        parameters: [{ name: 'sessionId', description: 'Durable Tavern session to summarize.' }],
+        returns: 'The resolved Journey character data and latest textual content.',
+      },
+      {
+        signature: '@Remote(\'inspectArchivedHistory\') async remoteInspectArchivedHistory(sessionId: SessionId): Promise<TavernHistoryEntry>',
+        description: 'Read an archived Tavern Journey for the History page. Archived entries intentionally use a separate Remote from active-history inspection: active grouping surfaces continue to reject archived sessions while the Tavern archive retains a read-and-restore path.',
+        parameters: [{ name: 'sessionId', description: 'Archived Tavern session to inspect.' }],
+        returns: 'The resolved Journey character data and latest text.',
+      },
+      {
+        signature: '@Remote(\'archiveHistory\') async remoteArchiveHistory(sessionId: SessionId): Promise<void>',
+        description: 'Archive one history session through the workspace\'s durable registry.',
+        parameters: [{ name: 'sessionId', description: 'Session identifier to hide from workspace projections.' }],
+        returns: 'Resolution after the archive state is durable.',
+      },
+      {
+        signature: '@Remote(\'restoreHistory\') async remoteRestoreHistory(sessionId: SessionId): Promise<void>',
+        description: 'Restore one archived history session to its workspace projections.',
+        parameters: [{ name: 'sessionId', description: 'Session identifier to restore.' }],
+        returns: 'Resolution after the archive set is durable.',
       },
       {
         signature: '@Remote(\'editMessage\') remoteEditMessage(agent: Agent, input: TavernMessageEditInput): TavernMessageEditResult',
@@ -1825,22 +1894,112 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'The accepted target sequence.',
       },
       {
+        signature: '@Remote(\'deleteMessage\') remoteDeleteMessage(agent: Agent, input: Pick<TavernMessageEditInput, \'targetSeq\'>): TavernMessageEditResult',
+        description: 'Delete a message through the current Session surface API and invalidate facts derived from the deleted message and later assistant responses.\n\nSession currently exposes historical edits, but no physical delete operation. An empty replacement is therefore the smallest replayable adapter; the original message and its fact audit remain durable.',
+        parameters: [{ name: 'agent', description: 'Session owner receiving the deletion edit.' }, { name: 'input', description: 'Message event sequence to hide.' }],
+        returns: 'The deleted target sequence.',
+      },
+      {
         signature: '@Remote(\'inspectSelection\') remoteInspectSelection(selection: AssetSelection): TavernSelectionInspection',
         description: 'Inspect selected assets and their source-tracked prompt baseline.',
         parameters: [{ name: 'selection', description: 'Asset IDs to inspect.' }],
         returns: 'Detached assets and the exact baseline produced by the registry.',
       },
       {
-        signature: '@Remote(\'listMemory\') remoteListMemory(agent: Agent): readonly import(\'./types.ts\').TavernMemoryEntry[]',
-        description: 'List enabled durable memory entries for a session.',
-        parameters: [{ name: 'agent', description: 'Session owner whose log is inspected.' }],
-        returns: 'Detached enabled Memory entries in log order.',
+        signature: '@Remote(\'previewAssetCleaning\') async remotePreviewAssetCleaning(id: AssetId): Promise<TavernAssetCleaningPreview>',
+        description: 'Preview the current canonical view, optionally replacing the fallback with one model-cleaned view. The source asset is never changed by this Remote.',
+        parameters: [{ name: 'id', description: 'Asset identifier.' }],
+        returns: 'The source asset and canonical cleaning record.',
       },
       {
-        signature: '@Remote(\'remember\') remoteRemember(agent: Agent, input: import(\'./types.ts\').TavernMemoryInput): import(\'./types.ts\').TavernMemoryEntry',
-        description: 'Append or replace one durable memory entry for a session.',
-        parameters: [{ name: 'agent', description: 'Session owner receiving the Memory event.' }, { name: 'input', description: 'Memory text and optional stable fields.' }],
-        returns: 'The detached Memory entry written to the Session log.',
+        signature: '@Remote(\'confirmAssetCleaning\') async remoteConfirmAssetCleaning(id: AssetId, view: CanonicalAssetView): Promise<TavernAssetCleaningPreview>',
+        description: 'Persist a caller-confirmed canonical view beside its original asset.',
+        parameters: [{ name: 'id', description: 'Asset identifier.' }, { name: 'view', description: 'Canonical view edited or accepted by the caller.' }],
+        returns: 'The confirmed preview.',
+      },
+      {
+        signature: '@Remote(\'inspectAssetCleaning\') remoteInspectAssetCleaning(id: AssetId): TavernAssetCleaningPreview',
+        description: 'Inspect the canonical cleaning record without rerunning a model call.',
+        parameters: [{ name: 'id', description: 'Asset identifier.' }],
+        returns: 'The current cleaning preview.',
+      },
+      {
+        signature: '@Remote(\'inspectFacts\') remoteInspectFacts(agent: Agent): TavernFactInspection',
+        description: 'Inspect the current Journey-local automatic fact projection and its audit records.',
+        parameters: [{ name: 'agent', description: 'Session owner whose fact log is inspected.' }],
+        returns: 'Active facts and accepted or rejected operations in log order.',
+      },
+      {
+        signature: '@Remote(\'inspectMemory\') remoteInspectMemory(agent: Agent): TavernMemoryInspection',
+        description: 'Rebuild plot checkpoints from the Journey\'s durable compaction records. Ordinary transcript text is never inspected as a fallback. Missing or incomplete summary/checkpoint pairs return an empty checkpoint list.',
+        parameters: [{ name: 'agent', description: 'Session owner whose compaction history is inspected.' }],
+        returns: 'A detached list of safely reconstructed plot checkpoints.',
+      },
+      {
+        signature: '@Remote(\'applySectionConfig\') remoteApplySectionConfig(agent: Agent, input: TavernSectionConfigInput): TavernSectionConfigInspection',
+        description: 'Append one user-owned dynamic ledger section operation.',
+        parameters: [{ name: 'agent', description: 'Session owner receiving the configuration event.' }, { name: 'input', description: 'Section operation and its values.' }],
+        returns: 'The replayed section configuration inspection.',
+      },
+      {
+        signature: '@Remote(\'inspectSectionConfig\') remoteInspectSectionConfig(agent: Agent): TavernSectionConfigInspection',
+        description: 'Inspect dynamic ledger configuration reconstructed from the Session log.',
+        parameters: [{ name: 'agent', description: 'Session owner whose configuration is inspected.' }],
+        returns: 'The current configuration and its source events.',
+      },
+      {
+        signature: '@Remote(\'inspectFactProjection\') remoteInspectFactProjection(agent: Agent): TavernFactProjection',
+        description: 'Read only the active fact projection used by dynamic Journey columns.',
+        parameters: [{ name: 'agent', description: 'Session owner whose fact stream is projected.' }],
+        returns: 'Active facts grouped by people and world scope.',
+      },
+      {
+        signature: '@Remote(\'inspectContextActivation\') remoteInspectContextActivation(agent: Agent): CompiledContext<PromptWorldInfoEntry> | null',
+        description: 'Inspect the latest compiled Tavern context, including every ledger inclusion and exclusion decision.',
+        parameters: [{ name: 'agent', description: 'Session owner whose context is inspected.' }],
+        returns: 'The last durable compilation, a current compilation, or null before selection.',
+      },
+      {
+        signature: '@Remote(\'inspectGmResponses\') remoteInspectGmResponses(agent: Agent): readonly TavernGmResponseInspection[]',
+        description: 'Inspect parsed GM response envelopes retained for one Journey.',
+        parameters: [{ name: 'agent', description: 'Session owner whose parsed model responses are inspected.' }],
+        returns: 'Parsed responses with the assistant and durable event sequences.',
+      },
+      {
+        signature: '@Remote(\'inspectJourneyAssets\') remoteInspectJourneyAssets(agent: Agent): TavernJourneyAssetProjection | null',
+        description: 'Read the current Journey detail projection with local facts overlaid.',
+        parameters: [{ name: 'agent', description: 'Session owner whose resolved Journey asset projection is read.' }],
+        returns: 'The latest Journey asset/person/field projection, or null before selection.',
+      },
+      {
+        signature: '@Remote(\'listPersonFacts\') remoteListPersonFacts(agent: Agent, personId: string): readonly import(\'./types.ts\').TavernFactEntry[]',
+        description: 'Read current facts for one explicitly identified Journey person.',
+        parameters: [{ name: 'agent', description: 'Session owner whose fact projection is queried.' }, { name: 'personId', description: 'Stable Journey person identifier.' }],
+        returns: 'Active person facts.',
+      },
+      {
+        signature: '@Remote(\'listWorldFacts\') remoteListWorldFacts(agent: Agent): readonly import(\'./types.ts\').TavernFactEntry[]',
+        description: 'Read current world facts for a Journey.',
+        parameters: [{ name: 'agent', description: 'Session owner whose fact projection is queried.' }],
+        returns: 'Active world facts.',
+      },
+      {
+        signature: '@Remote(\'editFact\') remoteEditFact(agent: Agent, input: TavernFactEditInput): TavernFactInspection',
+        description: 'Correct an existing automatic fact through an append-only replacement event.',
+        parameters: [{ name: 'agent', description: 'Session owner receiving the correction.' }, { name: 'input', description: 'Existing fact ID and replacement text.' }],
+        returns: 'The updated fact projection.',
+      },
+      {
+        signature: '@Remote(\'removeFact\') remoteRemoveFact(agent: Agent, input: TavernFactRemovalInput): TavernFactInspection',
+        description: 'Revoke an existing automatic fact without removing its source event.',
+        parameters: [{ name: 'agent', description: 'Session owner receiving the revocation.' }, { name: 'input', description: 'Existing fact ID.' }],
+        returns: 'The updated fact projection.',
+      },
+      {
+        signature: '@Remote(\'resolveConflict\') remoteResolveConflict( agent: Agent, input: { readonly factId: string; readonly keep: \'new\' | \'old\' }, ): TavernFactInspection',
+        description: 'Resolve one hard-fact conflict by appending a user-authorized remove event for the rejected side. The conflict and rejected source remain auditable.',
+        parameters: [{ name: 'agent', description: 'Session owner receiving the decision.' }, { name: 'input', description: 'Conflict fact identifier and whether the incoming or prior value wins.' }],
+        returns: 'The fact inspection after the decision.',
       },
       {
         signature: '@Remote(\'inspectStoryState\') remoteInspectStoryState(agent: Agent): import(\'./types.ts\').TavernStoryStateInspection',
@@ -2281,6 +2440,12 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         signature: 'archiveSession(sessionId: SessionId): Promise<void>',
         description: 'Archive one session durably. The session must exist (live or in session persistence); its workspace accounting — or lack of one — is irrelevant. An already archived id resolves without writing.',
         parameters: [{ name: 'sessionId', description: 'The session to archive.' }],
+        returns: 'resolution after durability.',
+      },
+      {
+        signature: 'unarchiveSession(sessionId: SessionId): Promise<void>',
+        description: 'Remove one session from the registry-global archive set. Workspace accounting is untouched, so a restored session returns to its original position. An id that is not archived is an idempotent no-op.',
+        parameters: [{ name: 'sessionId', description: 'The session to restore.' }],
         returns: 'resolution after durability.',
       },
       {
@@ -2845,7 +3010,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'AssetRegistry',
-    declaration: 'export class AssetRegistry {\n    register(asset: TavernAsset): () => void;\n    replace(asset: TavernAsset): () => void;\n    getCharacter(id: AssetId): CharacterAsset | undefined;\n    getWorldInfo(id: AssetId): WorldInfoAsset | undefined;\n    listCharacters(): readonly CharacterAsset[];\n    listWorldInfo(): readonly WorldInfoAsset[];\n    select(selection: AssetSelection): PromptAssetBaseline;\n}',
+    declaration: 'export class AssetRegistry {\n    register(asset: TavernAsset): () => void;\n    replace(asset: TavernAsset): () => void;\n    remove(id: AssetId): TavernAsset | undefined;\n    getCharacter(id: AssetId): CharacterAsset | undefined;\n    getWorldInfo(id: AssetId): WorldInfoAsset | undefined;\n    listCharacters(): readonly CharacterAsset[];\n    listWorldInfo(): readonly WorldInfoAsset[];\n    select(selection: AssetSelection): PromptAssetBaseline;\n}',
   },
   {
     name: 'AssetSelection',
@@ -2872,6 +3037,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type AttachmentId = Branded<\'AttachmentId\'>;',
   },
   {
+    name: 'Authority',
+    declaration: 'export type Authority = \'public\' | \'player\' | \'character\' | \'narrator\' | \'gm\';',
+  },
+  {
     name: 'BackendRegistry',
     declaration: 'export class BackendRegistry {\n    register(name: string, backend: StorageBackend): () => void;\n    get(name: string): StorageBackend;\n    names(): string[];\n}',
   },
@@ -2888,6 +3057,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface BashEnvVariableInfo extends BashEnvVariable {\n    contributor: string;\n    key: DshEnvironmentKey;\n}',
   },
   {
+    name: 'BranchScope',
+    declaration: 'export type BranchScope = {\n    readonly kind: \'all\';\n} | {\n    readonly kind: \'branch\';\n    readonly id: string;\n};',
+  },
+  {
     name: 'Branded',
     declaration: 'export type Branded<B extends string> = string & {\n    readonly [BRAND]: B;\n};',
   },
@@ -2897,7 +3070,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'CharacterAsset',
-    declaration: 'export interface CharacterAsset {\n    readonly kind: \'character\';\n    readonly id: AssetId;\n    readonly name: string;\n    readonly version: AssetVersion;\n    readonly sourceReferences: readonly AssetSourceReference[];\n    readonly sourceData: JsonObject;\n    readonly description: string;\n    readonly personality: string;\n    readonly scenario: string;\n    readonly firstMessage: string;\n    readonly creatorNotes: string;\n    readonly messageExamples: string;\n    readonly alternateGreetings: readonly string[];\n    readonly systemPrompt: string;\n    readonly postHistoryInstructions: string;\n    readonly extensions: JsonObject;\n}',
+    declaration: 'export interface CharacterAsset {\n    readonly kind: \'character\';\n    readonly id: AssetId;\n    readonly name: string;\n    readonly version: AssetVersion;\n    readonly sourceReferences: readonly AssetSourceReference[];\n    readonly sourceData: JsonObject;\n    readonly description: string;\n    readonly personality: string;\n    readonly scenario: string;\n    readonly firstMessage: string;\n    readonly creatorNotes: string;\n    readonly messageExamples: string;\n    readonly alternateGreetings: readonly string[];\n    readonly systemPrompt: string;\n    readonly postHistoryInstructions: string;\n    readonly characterBook: WorldInfoAsset | null;\n    readonly extensions: JsonObject;\n}',
   },
   {
     name: 'CharacterPromptField',
@@ -2988,6 +3161,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type CompactionTrigger = \'pressure\' | \'context-overflow\';',
   },
   {
+    name: 'CompiledContext',
+    declaration: 'export interface CompiledContext<T = unknown> {\n    readonly stablePrefix: readonly ContextSourceRecord<T>[];\n    readonly dynamicSuffix: readonly ContextSourceRecord<T>[];\n    readonly ledger: ContextLedger;\n    readonly usage: ContextUsage;\n}',
+  },
+  {
     name: 'ConfinedArgv',
     declaration: 'export interface ConfinedArgv {\n    argv: string[];\n    enforcement: SandboxEnforcement;\n    denialSignatures: readonly string[];\n    runnerFailureRules: readonly RunnerFailureRule[];\n}',
   },
@@ -3004,12 +3181,44 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type ContentBlockType = keyof ContentBlockMap;',
   },
   {
+    name: 'ContextDecision',
+    declaration: 'export interface ContextDecision {\n    readonly key: string;\n    readonly origin: \'source\' | \'world-info\';\n    readonly outcome: ContextDecisionOutcome;\n    readonly reason: ContextDecisionReason;\n    readonly matchKind?: \'primary\' | \'secondary\';\n    readonly matchedKeys?: readonly string[];\n    readonly attempted?: ContextUsage;\n    readonly accepted?: ContextUsage;\n    readonly order: number;\n}',
+  },
+  {
+    name: 'ContextDecisionOutcome',
+    declaration: 'export type ContextDecisionOutcome = \'included\' | \'excluded\';',
+  },
+  {
+    name: 'ContextDecisionReason',
+    declaration: 'export type ContextDecisionReason = \'included\' | \'observer\' | \'visibility\' | \'authority\' | \'branch\' | \'invalid\' | \'not-matched\' | \'group\' | \'duplicate\' | \'budget-characters\' | \'budget-tokens\' | \'budget-both\';',
+  },
+  {
     name: 'ContextFormed',
     declaration: 'export type ContextFormed = {\n    readonly form?: never;\n} | {\n    readonly form: \'instructions\';\n} | {\n    readonly form: \'catalog\';\n} | {\n    readonly form: \'snapshot\';\n    readonly sections: readonly ContextSnapshotSection[];\n} | {\n    readonly form: \'notice\';\n    readonly summary: string;\n} | {\n    readonly form: \'relay\';\n} | {\n    readonly form: \'recall\';\n};',
   },
   {
+    name: 'ContextLedger',
+    declaration: 'export type ContextLedger = readonly ContextDecision[];',
+  },
+  {
+    name: 'ContextProvenance',
+    declaration: 'export interface ContextProvenance {\n    readonly kind: string;\n    readonly id: string;\n    readonly eventIds?: readonly string[];\n}',
+  },
+  {
     name: 'ContextSnapshotSection',
     declaration: 'export interface ContextSnapshotSection {\n    readonly name: string;\n    readonly text: string;\n}',
+  },
+  {
+    name: 'ContextSourceRecord',
+    declaration: 'export interface ContextSourceRecord<T = unknown> {\n    readonly key: string;\n    readonly text: string;\n    readonly stability: ContextStability;\n    readonly observer: ObserverScope;\n    readonly visibility: Visibility;\n    readonly authority: Authority;\n    readonly branch: BranchScope;\n    readonly validity: SourceValidity;\n    readonly provenance: ContextProvenance;\n    readonly priority: number;\n    readonly metadata?: T;\n}',
+  },
+  {
+    name: 'ContextStability',
+    declaration: 'export type ContextStability = \'stable\' | \'dynamic\';',
+  },
+  {
+    name: 'ContextUsage',
+    declaration: 'export interface ContextUsage {\n    readonly characters: number;\n    readonly tokens?: number;\n}',
   },
   {
     name: 'ContinuableCreateRequest',
@@ -3636,6 +3845,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type ObjectJsonSchema = JsonSchemaNode & {\n    type: \'object\';\n};',
   },
   {
+    name: 'Observer',
+    declaration: 'export type Observer = {\n    readonly kind: \'gm\';\n} | {\n    readonly kind: \'player\';\n} | {\n    readonly kind: \'narrator\';\n} | {\n    readonly kind: \'character\';\n    readonly id: string;\n};',
+  },
+  {
+    name: 'ObserverScope',
+    declaration: 'export type ObserverScope = {\n    readonly kind: \'all\';\n} | {\n    readonly kind: \'specific\';\n    readonly observer: Observer;\n};',
+  },
+  {
     name: 'OneShotSubagentDescriptorData',
     declaration: 'export interface OneShotSubagentDescriptorData extends SubagentDescriptorBase {\n    readonly mode: \'one-shot\';\n    readonly label?: string;\n}',
   },
@@ -4252,6 +4469,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type SourceEventId = string & {\n    readonly [SourceEventIdBrand]: \'SourceEventId\';\n};',
   },
   {
+    name: 'SourceValidity',
+    declaration: 'export type SourceValidity = {\n    readonly status: \'valid\';\n} | {\n    readonly status: \'invalid\';\n    readonly reason: string;\n};',
+  },
+  {
     name: 'SpillLocator',
     declaration: 'export type SpillLocator = Branded<\'SpillLocator\'>;',
   },
@@ -4508,12 +4729,96 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type TavernAsset = CharacterAsset | WorldInfoAsset;',
   },
   {
+    name: 'TavernAssetCleaningPreview',
+    declaration: 'export interface TavernAssetCleaningPreview {\n    readonly asset: TavernAsset;\n    readonly record: TavernAssetCleaningRecord;\n    readonly confirmed: boolean;\n}',
+  },
+  {
+    name: 'TavernAssetCleaningRecord',
+    declaration: 'export interface TavernAssetCleaningRecord {\n    readonly status: \'fallback\' | \'model\' | \'confirmed\';\n    readonly origin: \'heuristic\' | \'model\';\n    readonly view: CanonicalAssetView;\n    readonly route?: TavernAssetCleaningRoute;\n    readonly error?: string;\n}',
+  },
+  {
+    name: 'TavernAssetCleaningRoute',
+    declaration: 'export interface TavernAssetCleaningRoute {\n    readonly provider: string;\n    readonly model: string;\n}',
+  },
+  {
     name: 'TavernAssetHost',
-    declaration: 'export class TavernAssetHost {\n    readonly registry: AssetRegistry;\n    constructor(registry = new AssetRegistry());\n    listCharacters(): readonly CharacterAsset[];\n    listWorldInfo(): readonly WorldInfoAsset[];\n    importCharacter(input: JsonInput, options: TavernImportOptions = {}): TavernImportResult<CharacterAsset>;\n    updateCharacter(input: JsonInput, options: TavernUpdateOptions): TavernImportResult<CharacterAsset>;\n    importWorldInfo(input: JsonInput, options: TavernImportOptions = {}): TavernImportResult<WorldInfoAsset>;\n    updateWorldInfo(input: JsonInput, options: TavernUpdateOptions): TavernImportResult<WorldInfoAsset>;\n    select(selection: AssetSelection): PromptAssetBaseline;\n    inspectSelection(selection: AssetSelection): TavernSelectionInspection;\n    exportCharacter(id: import(\'@deepseek-ai/dsh-tavern-assets/types\').AssetId): string;\n    exportWorldInfo(id: import(\'@deepseek-ai/dsh-tavern-assets/types\').AssetId): string;\n}',
+    declaration: 'export class TavernAssetHost {\n    readonly registry: AssetRegistry;\n    constructor(registry = new AssetRegistry());\n    listCharacters(): readonly CharacterAsset[];\n    listWorldInfo(): readonly WorldInfoAsset[];\n    getAsset(id: AssetId): TavernAsset | undefined;\n    getCleaningRecord(id: AssetId): TavernAssetCleaningRecord | undefined;\n    getCanonicalView(id: AssetId): CanonicalAssetView | undefined;\n    setCleaningRecord(id: AssetId, record: TavernAssetCleaningRecord): void;\n    confirmCleaning(id: AssetId, view: CanonicalAssetView): TavernAssetCleaningRecord;\n    importCharacter(input: JsonInput, options: TavernImportOptions = {}): TavernImportResult<CharacterAsset>;\n    parseCharacter(input: JsonInput, options: TavernImportOptions): CharacterAsset;\n    updateCharacter(input: JsonInput, options: TavernUpdateOptions): TavernImportResult<CharacterAsset>;\n    importWorldInfo(input: JsonInput, options: TavernImportOptions = {}): TavernImportResult<WorldInfoAsset>;\n    parseWorldInfo(input: JsonInput, options: TavernImportOptions): WorldInfoAsset;\n    updateWorldInfo(input: JsonInput, options: TavernUpdateOptions): TavernImportResult<WorldInfoAsset>;\n    removeAsset(id: import(\'@deepseek-ai/dsh-tavern-assets/types\').AssetId): TavernAsset | undefined;\n    select(selection: AssetSelection): PromptAssetBaseline;\n    inspectSelection(selection: AssetSelection): TavernSelectionInspection;\n    exportCharacter(id: import(\'@deepseek-ai/dsh-tavern-assets/types\').AssetId): string;\n   /* …truncated — full shape in source */',
   },
   {
     name: 'TavernAssetKind',
     declaration: 'export type TavernAssetKind = \'character\' | \'world-info\';',
+  },
+  {
+    name: 'TavernBootstrapJourneyResult',
+    declaration: 'export interface TavernBootstrapJourneyResult {\n    readonly selection: TavernSessionSelection;\n    readonly factProjection: TavernFactProjection;\n}',
+  },
+  {
+    name: 'TavernFactAuthority',
+    declaration: 'export type TavernFactAuthority = \'model-candidate\' | \'observed\' | \'authored-asset\' | \'user\' | \'gm\';',
+  },
+  {
+    name: 'TavernFactConflict',
+    declaration: 'export interface TavernFactConflict {\n    readonly id: string;\n    readonly factId: TavernFactId;\n    readonly previousFactId: TavernFactId;\n    readonly label: string;\n    readonly previousText: string;\n    readonly incomingText: string;\n    readonly previousAuthority: TavernFactAuthority;\n    readonly incomingAuthority: TavernFactAuthority;\n    readonly subjectKey?: string;\n    readonly previousExplicit?: boolean;\n    readonly incomingExplicit?: boolean;\n    readonly previousEventSeq: number;\n    readonly incomingEventSeq: number;\n}',
+  },
+  {
+    name: 'TavernFactEditInput',
+    declaration: 'export interface TavernFactEditInput {\n    readonly factId: string;\n    readonly text: string;\n}',
+  },
+  {
+    name: 'TavernFactEntry',
+    declaration: 'export interface TavernFactEntry {\n    readonly factId: TavernFactId;\n    readonly target: TavernFactTarget;\n    readonly personId?: TavernPersonId;\n    readonly text: string;\n    readonly label?: string;\n    readonly branch?: string;\n    readonly authority?: TavernFactAuthority;\n    readonly kind?: TavernFactKind;\n    readonly subjectKey?: string;\n    readonly extractionId?: string;\n    readonly explicit?: boolean;\n    readonly replacesFactId?: string;\n    readonly source: TavernFactSource;\n    readonly sourceAssetId?: string;\n    readonly sourceEntryId?: string;\n    readonly eventSeq: number;\n    readonly assistantSeq?: number;\n    readonly turn?: number;\n    readonly conflicts?: readonly TavernFactConflict[];\n}',
+  },
+  {
+    name: 'TavernFactEvent',
+    declaration: 'export interface TavernFactEvent {\n    readonly branch: string;\n    readonly target: TavernFactTarget;\n    readonly personId?: string;\n    readonly operation: \'add\' | \'replace\' | \'remove\';\n    readonly factId?: string;\n    readonly text?: string;\n    readonly label?: string;\n    readonly authority?: TavernFactAuthority;\n    readonly kind?: TavernFactKind;\n    readonly subjectKey?: string;\n    readonly extractionId?: string;\n    readonly explicit?: boolean;\n    readonly sourceAssetId?: string;\n    readonly sourceEntryId?: string;\n    readonly assistantSeq?: number;\n    readonly turn?: number;\n    readonly idempotencyKey?: string;\n    readonly replacesFactId?: string;\n    readonly accepted: boolean;\n    readonly rejection?: string;\n    readonly resolvesConflictIds?: readonly string[];\n    readonly revertedFromSeq?: number;\n}',
+  },
+  {
+    name: 'TavernFactId',
+    declaration: 'export type TavernFactId = Branded<\'TavernFactId\'>;',
+  },
+  {
+    name: 'TavernFactInspection',
+    declaration: 'export interface TavernFactInspection {\n    readonly projection: TavernFactProjection;\n    readonly records: readonly {\n        readonly seq: number;\n        readonly data: TavernFactEvent;\n    }[];\n}',
+  },
+  {
+    name: 'TavernFactKind',
+    declaration: 'export type TavernFactKind = \'soft\' | \'hard\';',
+  },
+  {
+    name: 'TavernFactProjection',
+    declaration: 'export interface TavernFactProjection {\n    readonly people: Readonly<Record<string, readonly TavernFactEntry[]>>;\n    readonly world: readonly TavernFactEntry[];\n    readonly conflicts?: readonly TavernFactConflict[];\n}',
+  },
+  {
+    name: 'TavernFactRemovalInput',
+    declaration: 'export interface TavernFactRemovalInput {\n    readonly factId: string;\n}',
+  },
+  {
+    name: 'TavernFactSource',
+    declaration: 'export type TavernFactSource = {\n    readonly kind: \'asset\';\n    readonly assetId: string;\n    readonly entryId?: string;\n} | {\n    readonly kind: \'assistant\';\n    readonly assistantSeq: number;\n} | {\n    readonly kind: \'user\';\n} | {\n    readonly kind: \'system\';\n};',
+  },
+  {
+    name: 'TavernFactTarget',
+    declaration: 'export type TavernFactTarget = \'person\' | \'world\';',
+  },
+  {
+    name: 'TavernGmResponse',
+    declaration: 'export interface TavernGmResponse {\n    readonly story: string;\n    readonly updates?: JsonValue;\n}',
+  },
+  {
+    name: 'TavernGmResponseEvent',
+    declaration: 'export interface TavernGmResponseEvent {\n    readonly assistantSeq: number;\n    readonly turn: number;\n    readonly response: TavernGmResponse;\n}',
+  },
+  {
+    name: 'TavernGmResponseInspection',
+    declaration: 'export interface TavernGmResponseInspection extends TavernGmResponseEvent {\n    readonly eventSeq: number;\n}',
+  },
+  {
+    name: 'TavernGreetingEvent',
+    declaration: 'export interface TavernGreetingEvent {\n    readonly characterId: AssetId;\n    readonly characterName: string;\n    readonly text: string;\n    readonly selectionSeq: number;\n}',
+  },
+  {
+    name: 'TavernHistoryEntry',
+    declaration: 'export interface TavernHistoryEntry {\n    readonly sessionId: SessionId;\n    readonly selection: TavernSessionSelection | null;\n    readonly character: CharacterAsset | null;\n    readonly characterName: string | null;\n    readonly lastContent: string | null;\n}',
   },
   {
     name: 'TavernImportOptions',
@@ -4528,12 +4833,28 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface TavernImportSource {\n    readonly kind: string;\n    readonly locator: string;\n    readonly mediaType?: string | null;\n    readonly digest?: string | null;\n}',
   },
   {
-    name: 'TavernMemoryEntry',
-    declaration: 'export interface TavernMemoryEntry {\n    readonly id: string;\n    readonly text: string;\n    readonly level: \'pinned\' | \'persistent\' | \'scene\';\n    readonly enabled: boolean;\n    readonly label: string | null;\n}',
+    name: 'TavernJourneyAssetProjection',
+    declaration: 'export interface TavernJourneyAssetProjection extends TavernJourneySelection {\n    readonly people: readonly TavernJourneyPerson[];\n    readonly characterFields: readonly TavernJourneyField[];\n    readonly worldFields: readonly TavernJourneyField[];\n    readonly facts: TavernFactProjection;\n    readonly openingGreeting?: TavernGreetingEvent;\n}',
   },
   {
-    name: 'TavernMemoryInput',
-    declaration: 'export interface TavernMemoryInput {\n    readonly id?: string;\n    readonly text: string;\n    readonly level?: TavernMemoryEntry[\'level\'];\n    readonly label?: string | null;\n}',
+    name: 'TavernJourneyField',
+    declaration: 'export interface TavernJourneyField {\n    readonly id: string;\n    readonly label: string;\n    readonly value: string;\n    readonly sourceAssetId?: AssetId;\n    readonly sourceEntryId?: AssetId;\n    readonly factId?: TavernFactId;\n    readonly origin: \'asset\' | \'fact\';\n}',
+  },
+  {
+    name: 'TavernJourneyPerson',
+    declaration: 'export interface TavernJourneyPerson {\n    readonly personId: TavernPersonId;\n    readonly name: string;\n    readonly source: {\n        readonly assetId: AssetId;\n        readonly entryId: AssetId;\n    } | null;\n    readonly content: string;\n    readonly fields: readonly TavernJourneyField[];\n    readonly facts: readonly TavernFactEntry[];\n}',
+  },
+  {
+    name: 'TavernJourneySelection',
+    declaration: 'export interface TavernJourneySelection {\n    readonly selection: AssetSelection;\n    readonly baseline: PromptAssetBaseline;\n    readonly character: CharacterAsset | null;\n    readonly worldInfo: readonly WorldInfoAsset[];\n    readonly characterName: string | null;\n    readonly worldInfoNames: readonly string[];\n    readonly playerIdentity?: string | null;\n    readonly canonical?: {\n        readonly character?: CanonicalAssetView;\n        readonly worldInfo: readonly CanonicalAssetView[];\n    };\n}',
+  },
+  {
+    name: 'TavernMemoryCheckpoint',
+    declaration: 'export interface TavernMemoryCheckpoint {\n    readonly compactionId: CompactionId;\n    readonly summarySeq: number;\n    readonly checkpointSeq: number;\n    readonly plotSummary: string;\n    readonly openThreads: readonly string[];\n    readonly shadowedTurns: {\n        readonly start: number;\n        readonly end: number;\n    };\n}',
+  },
+  {
+    name: 'TavernMemoryInspection',
+    declaration: 'export interface TavernMemoryInspection {\n    readonly checkpoints: readonly TavernMemoryCheckpoint[];\n}',
   },
   {
     name: 'TavernMessageEditInput',
@@ -4544,6 +4865,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface TavernMessageEditResult {\n    readonly targetSeq: number;\n}',
   },
   {
+    name: 'TavernPersonId',
+    declaration: 'export type TavernPersonId = Branded<\'TavernPersonId\'>;',
+  },
+  {
     name: 'TavernRegenerateInput',
     declaration: 'export interface TavernRegenerateInput {\n    readonly groupId: string;\n    readonly candidateId: string;\n}',
   },
@@ -4552,12 +4877,40 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface TavernRegenerateResult {\n    readonly sessionId: import(\'@deepseek-ai/dsh-session/types\').SessionId;\n}',
   },
   {
+    name: 'TavernSectionConfigEvent',
+    declaration: 'export interface TavernSectionConfigEvent {\n    readonly branch: string;\n    readonly scope: TavernSectionConfigScope;\n    readonly sectionId: string;\n    readonly operation: TavernSectionConfigOperation;\n    readonly name?: string;\n    readonly order?: readonly string[];\n}',
+  },
+  {
+    name: 'TavernSectionConfigInput',
+    declaration: 'export interface TavernSectionConfigInput {\n    readonly scope: TavernSectionConfigScope;\n    readonly operation: TavernSectionConfigOperation;\n    readonly sectionId?: string;\n    readonly name?: string;\n    readonly order?: readonly string[];\n}',
+  },
+  {
+    name: 'TavernSectionConfigInspection',
+    declaration: 'export interface TavernSectionConfigInspection {\n    readonly projection: TavernSectionConfigProjection;\n    readonly records: readonly {\n        readonly seq: number;\n        readonly data: TavernSectionConfigEvent;\n    }[];\n}',
+  },
+  {
+    name: 'TavernSectionConfigOperation',
+    declaration: 'export type TavernSectionConfigOperation = \'add\' | \'rename\' | \'remove\' | \'reorder\' | \'restore\';',
+  },
+  {
+    name: 'TavernSectionConfigProjection',
+    declaration: 'export interface TavernSectionConfigProjection {\n    readonly character: TavernSectionConfigScopeProjection;\n    readonly world: TavernSectionConfigScopeProjection;\n}',
+  },
+  {
+    name: 'TavernSectionConfigScope',
+    declaration: 'export type TavernSectionConfigScope = \'character\' | \'world\';',
+  },
+  {
+    name: 'TavernSectionConfigScopeProjection',
+    declaration: 'export interface TavernSectionConfigScopeProjection {\n    readonly names: Readonly<Record<string, string>>;\n    readonly hidden: readonly string[];\n    readonly order: readonly string[];\n}',
+  },
+  {
     name: 'TavernSelectionInspection',
     declaration: 'export interface TavernSelectionInspection {\n    readonly selection: AssetSelection;\n    readonly baseline: PromptAssetBaseline;\n    readonly character: CharacterAsset | null;\n    readonly worldInfo: readonly WorldInfoAsset[];\n}',
   },
   {
     name: 'TavernSessionSelection',
-    declaration: 'export interface TavernSessionSelection {\n    readonly selection: AssetSelection;\n    readonly baseline: PromptAssetBaseline;\n    readonly characterName: string | null;\n    readonly worldInfoNames: readonly string[];\n}',
+    declaration: 'export interface TavernSessionSelection {\n    readonly selection: AssetSelection;\n    readonly baseline: PromptAssetBaseline;\n    readonly character: CharacterAsset | null;\n    readonly worldInfo: readonly WorldInfoAsset[];\n    readonly characterName: string | null;\n    readonly worldInfoNames: readonly string[];\n    readonly playerIdentity?: string | null;\n    readonly canonical?: {\n        readonly character?: CanonicalAssetView;\n        readonly worldInfo: readonly CanonicalAssetView[];\n    };\n}',
   },
   {
     name: 'TavernStoryStateInspection',
@@ -4870,6 +5223,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'UserQuestionProvider',
     declaration: 'export interface UserQuestionProvider {\n    ask(request: AskUserQuestionRequest): Promise<AskUserQuestionAnswer>;\n}',
+  },
+  {
+    name: 'Visibility',
+    declaration: 'export type Visibility = \'public\' | \'private\' | \'gm-only\';',
   },
   {
     name: 'WebBootEntry',

@@ -16,7 +16,7 @@
 .actions,
 .brand,
 .connection,
-.sessionPicker,
+.navigation,
 .newButton {
   display: flex;
   align-items: center;
@@ -66,6 +66,37 @@
   gap: 12px;
 }
 
+.navigation {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+.navButton,
+.navActive {
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.navButton:hover,
+.navButton:focus-visible,
+.navActive {
+  border-color: var(--dsw-alias-border-l2);
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.navActive {
+  border-color: var(--dsw-alias-brand-primary);
+}
+
 .connection {
   gap: 7px;
   color: var(--dsw-alias-label-secondary);
@@ -88,43 +119,11 @@
   box-shadow: 0 0 0 3px var(--dsw-alias-state-business-tertiary);
 }
 
-.sessionPicker {
-  position: relative;
-  gap: 7px;
-  min-width: 0;
-  color: var(--dsw-alias-label-secondary);
-  font-size: 11px;
-  white-space: nowrap;
-}
-
-.sessionLabel {
-  display: none;
-}
-
-.select {
-  width: min(220px, 24vw);
-  min-height: 32px;
-  padding: 0 28px 0 10px;
-  border: 1px solid var(--dsw-alias-border-l2);
-  border-radius: 6px;
-  appearance: none;
-  color: var(--dsw-alias-label-primary);
-  background: var(--dsw-alias-bg-layer-1);
-  cursor: pointer;
-  font: inherit;
-}
-
-.select:focus-visible,
+.navButton:focus-visible,
+.navActive:focus-visible,
 .newButton:focus-visible {
   outline: 2px solid var(--dsw-alias-state-business-primary);
   outline-offset: 2px;
-}
-
-.selectIcon {
-  position: absolute;
-  right: 9px;
-  pointer-events: none;
-  color: var(--dsw-alias-label-tertiary);
 }
 
 .newButton {
@@ -168,8 +167,20 @@
 }
 
 /* Tavern owns the session context in its top bar; the generic header would
-   repeat the same title and view tabs above the workbench. */
-:global([data-tavern-surface]) > :global([data-slot='conversation']) > * > :global([data-slot='conversation.session.header']) {
+   repeat the same title and view tabs above the roleplay surface. */
+:global(.tavernLegacyRoot) :global([data-slot='conversation.session.header']) > header {
+  display: none;
+}
+
+/* The roleplay composer does not expose workspace commands or access modes. */
+:global(.tavernLegacyRoot) [data-composer-seat] [class*='tools'] > button:first-child,
+:global(.tavernLegacyRoot) [data-composer-seat] [class*='modes'] {
+  display: none;
+}
+
+/* Character selection is the only action on the entrance screen. */
+:global(.tavernLegacyRoot:has([data-tavern-mode='entrance'])) [data-composer-seat],
+:global(.tavernLegacyRoot:has([data-tavern-mode='history'])) [data-composer-seat] {
   display: none;
 }
 
@@ -182,8 +193,14 @@
   }
 
   .brandCluster,
+  .navigation,
   .actions {
     width: 100%;
+  }
+
+  .navigation {
+    order: 3;
+    margin-left: 0;
   }
 
   .actions {
@@ -194,9 +211,6 @@
     margin-right: auto;
   }
 
-  .select {
-    width: min(220px, 46vw);
-  }
 }
 
 @media (max-width: 460px) {
@@ -212,7 +226,173 @@
     padding: 0;
   }
 
-  .select {
-    width: min(190px, 60vw);
+}
+
+/* Old-tavern chrome. The shared application remains untouched; Tavern's
+   surface gets its own lighting, wood, and parchment color system. */
+:global(.tavernLegacyRoot) {
+  color-scheme: dark;
+  --tavern-ink: #120c0a;
+  --tavern-wood: #1b110e;
+  --tavern-walnut: #251712;
+  --tavern-panel: #2b1a14;
+  --tavern-panel-raised: #352117;
+  --tavern-line: #5b3927;
+  --tavern-line-soft: #3b251b;
+  --tavern-gold: #c48a43;
+  --tavern-gold-bright: #e0ad65;
+  --tavern-bone: #ead7b8;
+  --tavern-parchment: #c4a984;
+  --tavern-dim: #806955;
+  --tavern-red: #7d3d31;
+  --tavern-green: #879064;
+  background: var(--tavern-ink);
+}
+
+:global(.tavernLegacyRoot body) {
+  background: var(--tavern-ink);
+}
+
+.root {
+  min-height: 58px;
+  padding: 11px 24px;
+  border-bottom: 1px solid var(--tavern-line);
+  color: var(--tavern-bone);
+  background:
+    linear-gradient(90deg, rgba(8, 5, 4, 0.52), transparent 28%, rgba(8, 5, 4, 0.26)),
+    repeating-linear-gradient(0deg, rgba(255, 218, 153, 0.025) 0 1px, transparent 1px 5px),
+    var(--tavern-walnut);
+  box-shadow: 0 3px 16px rgba(0, 0, 0, 0.3), inset 0 -1px rgba(224, 173, 101, 0.08);
+}
+
+.brandCluster {
+  gap: 13px;
+}
+
+.brand {
+  gap: 10px;
+  color: var(--tavern-gold-bright);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 14px;
+  letter-spacing: 0.18em;
+}
+
+.mark {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--tavern-gold);
+  border-radius: 4px;
+  color: var(--tavern-gold-bright);
+  background: rgba(196, 138, 67, 0.1);
+  box-shadow: 0 0 12px rgba(196, 138, 67, 0.18), inset 0 0 8px rgba(196, 138, 67, 0.08);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 14px;
+}
+
+.divider {
+  height: 21px;
+  background: var(--tavern-line);
+}
+
+.mode {
+  color: var(--tavern-parchment);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 12px;
+}
+
+.actions {
+  gap: 11px;
+}
+
+.connection {
+  color: var(--tavern-dim);
+}
+
+.statusDot {
+  background: var(--tavern-green);
+  box-shadow: 0 0 8px rgba(135, 144, 100, 0.4);
+}
+
+[data-tavern-status='pending'] .statusDot {
+  background: var(--tavern-gold);
+  box-shadow: 0 0 8px rgba(196, 138, 67, 0.42);
+}
+
+[data-tavern-status='running'] .statusDot {
+  box-shadow: 0 0 0 3px rgba(196, 138, 67, 0.13), 0 0 9px rgba(196, 138, 67, 0.42);
+}
+
+.navButton,
+.navActive {
+  border-radius: 3px;
+  color: var(--tavern-parchment);
+}
+
+.navButton:hover,
+.navButton:focus-visible,
+.navActive {
+  border-color: var(--tavern-line);
+  color: var(--tavern-bone);
+  background: var(--tavern-panel);
+}
+
+.navActive {
+  border-color: var(--tavern-gold);
+  color: var(--tavern-gold-bright);
+}
+
+.newButton {
+  min-height: 34px;
+  border: 1px solid var(--tavern-line);
+  border-radius: 3px;
+  color: var(--tavern-gold-bright);
+  background: rgba(196, 138, 67, 0.07);
+}
+
+.newButton:hover {
+  border-color: var(--tavern-gold);
+  color: var(--tavern-bone);
+  background: rgba(196, 138, 67, 0.14);
+}
+
+.navButton:focus-visible,
+.navActive:focus-visible,
+.newButton:focus-visible {
+  outline-color: var(--tavern-gold-bright);
+}
+
+.loadingIcon {
+  color: var(--tavern-gold);
+}
+
+.readyIcon {
+  color: var(--tavern-green);
+}
+
+@media (max-width: 760px) {
+  .root {
+    padding: 10px 16px;
+  }
+}
+
+@media (max-width: 460px) {
+  .root {
+    min-height: 52px;
+    padding: 9px 12px;
+  }
+
+  .brand {
+    font-size: 12px;
+  }
+
+  .mark {
+    width: 26px;
+    height: 26px;
+  }
+
+  .newButton {
+    min-height: 34px;
+    border-color: transparent;
+    background: transparent;
   }
 }

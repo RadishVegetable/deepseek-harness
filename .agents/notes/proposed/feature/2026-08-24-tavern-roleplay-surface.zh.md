@@ -6,30 +6,30 @@ Status: proposed
 
 ## 问题
 
-SillyTavern 是角色扮演界面的参考实现，但它的上下文管理在结构上不可靠：聊天只有一个线性数组，使用本地估算的 token 截断，World Info 通过最近消息的字符串匹配激活，并注入同一个字符串。设定文本、世界信息和聊天历史分别计算 token，彼此不协商；同一事实可能在多个位置重复；摘要和被摘要的原文同时存在；切换历史消息的 swipe 不会使下游回复失效。长对话因此会稀释设定并产生幻觉。我们需要在 DeepSeek Harness 上提供酒馆级角色扮演界面，修复这些机制，而不是只重新制作外观，并利用插件组合运行带有明确小工具集的角色扮演 Agent。
+SillyTavern 是角色扮演界面的参考实现，但它的上下文管理在结构上不可靠：聊天只有一个线性数组，使用本地估算的 token 截断，World Info 通过最近消息的字符串匹配激活，并注入同一个字符串。设定文本、世界信息和聊天历史分别计算 token，彼此不协商；同一事实可能在多个位置重复；摘要和被摘要的原文同时存在；切换历史消息的 swipe 不会使下游回复失效。长对话因此会稀释设定并产生幻觉。我们需要在 DeepSeek Harness 上提供酒馆级角色扮演界面，修复这些机制，而不是只重新制作外观，并利用插件组合运行一条带有明确小工具集的 GM 叙事循环。
 
 ## 提案
 
 构建 `tavern` 能力族和 `tavern` profile。角色扮演是 Session 的一种一等形态，模型可见输入从 Session 日志重建，而不是从一个渲染字符串重建。该工作包含四项产品能力：
 
-1. **角色卡作为 preset。** 角色卡是一个目录，也可以由 JSON/PNG 导入，并展开为挂载 `dsh-persona` 且 `complete: true` 的 Agent preset。角色卡字段映射到带明确角色的 Prompt 段落，不静默丢弃 ST 的 `creator_notes`、Text-Completion 的 `system_prompt` 和 `wiBefore` 插槽。
-2. **带来源的上下文注入。** World Info 和角色记忆由权威匹配管线激活，作为带来源的运行时上下文快照注入，并以 `tavern/context-activation` 持久化事件追加到 Session 日志。模型看到的是结构化的“设定 / 世界 / 记忆 / 历史”层级，每个注入事实都有日志来源，满足模型可见内容必须可记录和重建的要求。
-3. **Swipe 作为分支。** Swipe 使用 `ctx.sessions.fork(source, boundary)`，子 Session 重放父 Session 的前缀并追加不同的助手消息。重新生成通过 Surface 的 `replace` 操作替换节点，并使变更点之后的派生历史失效。分支是持久化的 Session 血缘，而不是文件副本。
+1. **角色卡作为旅程锚点。** 角色卡是一个目录，也可以由 JSON/PNG 导入，并提供主角色信息、开场消息、内嵌的 `character_book`、附属 World Info 引用和旅程默认配置。角色卡字段映射到带明确职责的 GM Prompt 段落，不静默丢弃 ST 的 `creator_notes`、Text-Completion 的 `system_prompt` 和 `wiBefore` 插槽。角色卡提供故事数据，不创建角色 Agent 或独立回复链路。
+2. **带来源的世界书上下文注入。** 内嵌和附属的 World Info/Lorebook 条目以及旅程记忆由权威匹配管线激活，作为带来源的运行时上下文快照注入，并以 `tavern/context-activation` 持久化事件追加到 Session 日志。SillyTavern 的 `World` 保持为可复用的 Lorebook 条目集合，不是拥有角色阵容的世界实体。模型看到的是结构化的“设定 / 世界 / 记忆 / 历史”层级，每个注入事实都有日志来源，满足模型可见内容必须可记录和重建的要求。
+3. **一次 GM 剧情段和分支。** 一次玩家输入产生一次 GM 生成和一个剧情段。剧情段可以包含旁白以及多个角色的行动或对白，并可携带用于呈现和状态投影的块级归属。Swipe 和重新生成创建分支或替换叙事回合，使下游派生历史失效；transcript 不需要为每个角色分别调用模型。
 4. **小工具集。** Tavern preset 只挂载完整的 `dsh-persona`、酒馆 World Info/记忆行和 `ask_user_question`；bash、fs、web、skill、plan、subagent 的 schema 不会进入模型上下文。角色扮演 Prompt 保持小且适合缓存。
 
 交付栈是新的 `@deepseek-ai/dsh-tavern` bundle，叠加在 `dsh-base` 和 `dsh-web-app` 上，并提供 `tavern` profile；`ui-tavern` 客户端插件向现有 Web GUI 增加聊天页、角色编辑器、World Info 编辑器和 swipe 选择器。
 
 ## 上下文管线
 
-Tavern Session 的一次模型请求按以下顺序从 Session 日志组装，取代 ST 的单一拼接字符串：
+Tavern Session 的一次 GM 模型请求按以下顺序从 Session 日志组装，取代 ST 的单一拼接字符串：
 
 ```text
 session log (append-only, the only fact source)
-  ├─ system prompt: harness identity + character persona (complete:true)
+  ├─ system prompt: harness identity + GM narrative rules + primary Character Card
   ├─ sourced runtime-context snapshots (sourced tiers, newest-first):
-  │    ├─ scenario (card field, always on)
-  │    ├─ world info activations (tavern/context-activation events)
-  │    └─ character memory entries (tavern/memory events)
+  │    ├─ attached World Book and setting entries
+  │    ├─ World Info activations (tavern/context-activation events)
+  │    └─ Journey memory entries (tavern/memory events)
   └─ derived history: deriveMessages() over the log, compaction-folded
 ```
 
@@ -46,11 +46,11 @@ session log (append-only, the only fact source)
 
 | Package | Role | Key interface |
 |---|---|---|
-| `tavern/character` | Service Definition + provider + card parser | `ctx.characters` — `parse(input): CharacterCard` (JSON + PNG), `expand(card): preset source` |
-| `tavern/world-info` | Service Definition + provider + activation pipeline | `ctx.worldInfo` — `activate(session, buffer): Activation[]`; listens to `agent/pre-step`, injects activations, appends `tavern/context-activation` |
+| `tavern/character` | Service Definition + provider + card parser | `ctx.characters` — `parse(input): CharacterCard` (JSON + PNG), `expand(card): GM context source` |
+| `tavern/world-info` | Service Definition + provider + activation pipeline | `ctx.worldInfo` — `activate(session, buffer): Activation[]`; resolves embedded and attached Lorebooks, injects activations, appends `tavern/context-activation` |
 | `tavern/memory` | Memory seam + provider + retrieval | `ctx.tavernMemory` — `remember(session, entry)`, `query(session, scope): entries`; appends `tavern/memory` events |
 | `tavern/swipe` | Swipe/fork Consumer + invalidation | `ctx.tavernSwipes` — `swipe(session, at): Session`, `regenerate(session, at): void` (surface replace) |
-| `tavern/group-chat` | Group-chat orchestration Consumer | per-member agents over shared session, speaker selection at `agent/turn-stopping` |
+| `tavern/narrative` | GM narrative-loop Consumer | one GM generation per player input; Story segment blocks identify Character attribution without Character calls |
 | `client/ui-tavern` | Browser plugins | chat page, character/world/memory editors, swipe picker via `ctx.slots.register` |
 
 能力规则是：`character` 和 `world-info` 目前各有一个提供方，但卡片格式和检索策略在不同酒馆生态中已经不同，因此 Service Definition / Provider 的拆分是有现实依据的。单一适配器只是当前实现，不是能力边界。
@@ -82,25 +82,29 @@ ST 的上下文管线本身就是缺陷所在。直接扩展意味着重写 `scr
 
 ### Why not character-as-config in the profile?
 
-按 Session 切换角色不能使用 profile 级 patch，因为 profile 是进程级配置树，而角色选择属于 Session。角色应使用现有 Agent preset 组合机制，并通过持久化选择事件保证重放。
+按 Session 选择角色卡不能使用 profile 级 patch，因为 profile 是进程级配置树，而角色选择属于旅程。角色卡选择应记录其附属 baseline 的持久化事件，让 GM 请求继承回放保证，而不创建角色 Agent。
 
 ### Why not reuse the generic `compaction` command as-is?
 
 通用 compaction-basic 的阈值和尾部保留策略面向 coding Session。Tavern 需要保留首次问候、保护固定记忆，并优先折叠设定信息密集的历史。它应消费 compaction 能力，并注册 Tavern 专用 Provider，而不是复制 core 的实现。
 
+### Why not per-Character group chat?
+
+独立的角色调用会重复发送相同的 World Book、旅程和场景上下文，增加发言者调度，并把 token 消耗在协调上。一次 GM 生成可以在一个剧情段中标注多个角色块，同时保持因果顺序；因此第一版只提供伪群聊呈现。
+
 ## Acceptance criteria
 
 1. `dsh --profile tavern` 使用 `dsh-base`、`dsh-web-app` 和 Tavern bundle 启动，模型只收到 `ask_user_question` 等明确允许的工具 schema。
-2. Character Card JSON 可以导入、展开为 preset，并在该 preset 上创建 Session；系统 Prompt 包含完整角色设定段落。
+2. Character Card JSON 或 PNG 可以作为旅程锚点导入，保留附属 Lorebook 引用，并生成包含角色作者设定信息的一次 GM 上下文。
 3. 关键词为 `armor` 的 World Info 条目只在窗口内消息包含整词时激活，并追加 `tavern/context-activation` 事件；不匹配时不激活。
 4. `swipe()` 在消息 N 处分叉，子 Session 共享 N 之前的事件；重新生成消息 N 后，后续派生消息不会进入下一次请求。
 5. 编辑被摘要折叠范围中的消息时，该摘要从派生历史中失效。
-6. Web GUI 提供 Tavern 聊天页、角色编辑器、World Info 编辑器和 swipe 选择器，并能通过无密钥 snapshot 重放 Tavern Session。
+6. Web GUI 提供角色优先的旅程流程、Tavern 聊天页、角色卡编辑器、World Info 编辑器和 swipe 选择器，并能通过无密钥 snapshot 重放包含多角色剧情段的 Tavern Session。
 7. Dockerfile 构建 workspace，并在 `0.0.0.0:3080` 提供 profile；CLI 的 `--host 0.0.0.0` 拒绝规则仍由 profile 显式处理。
 
 ## Risks
 
-- **Preset 重新组合只适用于空 Session。** 已经产生内容的 Session 不能直接切换角色，以保持工具和模型可见输入的持久化语义；切换角色应创建新的分支或 Session。
+- **旅程的主角色卡固定。** 已经产生内容的旅程不能静默替换入口角色或附属 Lorebook baseline；改变关系锚点必须创建新的旅程或分支，以保持 GM 上下文可重建。
 - **角色卡生态差异很大。** 第一版只承诺 Character Card V2 风格 JSON 和 PNG tEXt 数据，其他格式在导入时明确失败。
 - **上下文预算仲裁是策略而不是机制。** 注入管线需要在 World Info、记忆和历史之间使用 Tavern 专用预算；首个提供方可以使用固定优先级，复杂策略后续再增加。
 - **方案选择 Session 分支而不是原地 swipe 数组。** 每次 swipe 都增加一个 Session 和子日志，重度使用时的存储量和 UI 密度需要实际工作流验证。

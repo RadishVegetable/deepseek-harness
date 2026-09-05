@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>酒馆 Tavern · 沉浸故事空间 — UI 设计稿</title>
+<style>
+/* ============================================================
+   酒馆 Tavern · 设计系统（Design Tokens）
+   基调：昏暗木质 + 暗色中性底 + 少量铜 / 红 / 青点缀
+   ============================================================ */
+:root {
+  /* —— 背景层级（暗色中性底，带暖色倾向，避免纯黑）—— */
+  --bg-void:    #120e0a;
+  --bg-base:    #1a1510;
+  --bg-surface: #221b14;
+  --bg-elevated:#2a2118;
+  --bg-hover:   #33281c;
+
+  /* —— 木质 —— */
+  --wood:       #4a3826;
+  --wood-soft:  rgba(74, 56, 38, 0.35);
+
+  /* —— 铜色（主强调）—— */
+  --copper:     #c99b64;
+  --copper-soft:#e3c391;
+  --copper-dim: #8a6d47;
+  --copper-wash:rgba(201,155,100,0.12);
+
+  /* —— 语义色 —— */
+  --red:        #c95a43;   /* 冲突 / 危险 */
+  --red-soft:   #7c3b2d;
+  --red-wash:   rgba(201,90,67,0.14);
+  --teal:       #57a89c;   /* 青（次级点缀）*/
+  --teal-soft:  #2f5d57;
+  --teal-wash:  rgba(87,168,156,0.12);
+
+  /* —— 文字 —— */
+  --text-1: #ece2d1;
+  --text-2: #c3b49c;
+  --text-3: #8d7e69;
+  --text-4: #5d5346;
+
+  /* —— 边框 —— */
+  --line:        #2e261d;
+  --line-strong: #403428;
+
+  /* —— 字体 —— */
+  --font-ui:    "PingFang SC","HarmonyOS Sans SC","Microsoft YaHei","Noto Sans SC",system-ui,-apple-system,sans-serif;
+  --font-story: "Source Han Serif SC","Noto Serif SC","Songti SC","STSong","SimSun",Georgia,serif;
+  --font-mono:  "SF Mono","JetBrains Mono",ui-monospace,Consolas,monospace;
+
+  /* —— 间距（4px 基准）—— */
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 20px;
+  --s6: 24px; --s8: 32px; --s10: 40px; --s12: 48px;
+
+  /* —— 圆角 —— */
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 20px;
+
+  /* —— 阴影 —— */
+  --shadow-1: 0 1px 2px rgba(0,0,0,.35);
+  --shadow-2: 0 6px 20px rgba(0,0,0,.45);
+  --shadow-3: 0 16px 48px rgba(0,0,0,.6);
+
+  /* —— 动效 —— */
+  --ease: cubic-bezier(.2,.7,.3,1);
+  --t-fast: .15s; --t-med: .28s; --t-slow: .45s;
+}
+
+/* ============================================================
+   基础重置
+   ============================================================ */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: var(--font-ui);
+  background: var(--bg-void);
+  color: var(--text-1);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+button { font-family: var(--font-ui); cursor: pointer; border: none; background: none; color: inherit; }
+input, textarea { font-family: var(--font-ui); color: var(--text-1); }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-thumb { background: #33291e; border-radius: 8px; border: 2px solid var(--bg-base); }
+::-webkit-scrollbar-thumb:hover { background: #423424; }
+::-webkit-scrollbar-track { background: transparent; }
+::selection { background: rgba(201,155,100,.3); }
+
+/* 细腻噪点，去除“仪表盘”塑料感 */
+body::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+  opacity: .035; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ============================================================
+   应用外壳（顶部栏 + 视图容器）
+   ============================================================ */
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+.topbar {
+  height: 52px; flex: 0 0 52px;
+  display: flex; align-items: center; gap: var(--s3);
+  padding: 0 var(--s5);
+  border-bottom: 1px solid var(--line);
+  background: rgba(18,14,10,.6); backdrop-filter: blur(12px);
+  position: relative; z-index: 50;
+}
+.brand { display: flex; align-items: center; gap: 10px; font-weight: 600; letter-spacing: .5px; }
+.brand .mark {
+  width: 26px; height: 26px; border-radius: 7px; display: grid; place-items: center;
+  background: linear-gradient(140deg, #4a3826, #2a2118);
+  border: 1px solid var(--line-strong);
+  color: var(--copper); font-size: 14px;
+}
+.brand small { color: var(--text-3); font-weight: 400; font-size: 12px; margin-left: 4px; }
+.topbar .spacer { flex: 1; }
+
+/* 原型导航（仅供评审切换视图，生产环境为独立路由） */
+.prototype-nav { display: flex; gap: 4px; background: var(--bg-surface); border: 1px solid var(--line); border-radius: 10px; padding: 3px; }
+.prototype-nav button {
+  padding: 6px 14px; border-radius: 7px; font-size: 13px; color: var(--text-3);
+  transition: all var(--t-fast);
+}
+.prototype-nav button:hover { color: var(--text-2); }
+.prototype-nav button.active { background: var(--bg-elevated); color: var(--copper-soft); box-shadow: var(--shadow-1); }
+
+.view { display: none; flex: 1; min-height: 0; }
+.view.active { display: flex; }
+
+/* ============================================================
+   通用组件
+   ============================================================ */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  padding: 10px 18px; border-radius: var(--r-md); font-size: 14px; font-weight: 500;
+  transition: all var(--t-fast); white-space: nowrap;
+}
+.btn:focus-visible { outline: 2px solid var(--copper); outline-offset: 2px; }
+.btn-primary {
+  background: var(--copper); color: #241a10; font-weight: 600;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.25), var(--shadow-1);
+}
+.btn-primary:hover { background: var(--copper-soft); transform: translateY(-1px); box-shadow: var(--shadow-2); }
+.btn-primary:active { transform: translateY(0); }
+.btn-ghost { border: 1px solid var(--line-strong); color: var(--text-2); background: transparent; }
+.btn-ghost:hover { border-color: var(--copper-dim); color: var(--copper-soft); background: var(--bg-hover); }
+.btn-subtle { color: var(--text-3); padding: 8px 12px; font-size: 13px; }
+.btn-subtle:hover { color: var(--text-1); background: var(--bg-hover); border-radius: var(--r-sm); }
+.btn-danger { background: var(--red-wash); color: #e08d76; border: 1px solid rgba(201,90,67,.35); }
+.btn-danger:hover { background: rgba(201,90,67,.25); }
+
+.icon-btn {
+  width: 32px; height: 32px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-3); transition: all var(--t-fast); font-size: 15px;
+}
+.icon-btn:hover { color: var(--copper-soft); background: var(--bg-hover); }
+
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 3px 10px; border-radius: 999px; font-size: 12px;
+  border: 1px solid var(--line-strong); color: var(--text-2); background: rgba(0,0,0,.25);
+}
+.chip .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--teal); }
+.chip .dot.copper { background: var(--copper); }
+
+/* 栏目卡片（仅用于“重复项”） */
+.section-card {
+  background: var(--bg-surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  overflow: hidden; transition: border-color var(--t-med), box-shadow var(--t-med);
+}
+.section-card:hover { border-color: var(--line-strong); }
+.section-card.conflict {
+  border-color: var(--red); box-shadow: 0 0 0 1px var(--red), 0 6px 24px rgba(201,90,67,.18);
+  animation: conflictPulse 2.4s var(--ease) infinite;
+}
+@keyframes conflictPulse {
+  0%,100% { box-shadow: 0 0 0 1px var(--red), 0 6px 24px rgba(201,90,67,.18); }
+  50%     { box-shadow: 0 0 0 2px var(--red), 0 8px 30px rgba(201,90,67,.32); }
+}
+
+.section-head {
+  display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+  border-bottom: 1px solid var(--line); cursor: default;
+}
+.section-head .title {
+  font-size: 13px; font-weight: 600; color: var(--text-2); letter-spacing: .5px;
+  display: flex; align-items: center; gap: 7px;
+}
+.section-head .title .ico { color: var(--copper); font-size: 13px; }
+.section-head .badge { font-size: 11px; color: var(--text-4); font-weight: 400; }
+.section-head .spacer { flex: 1; }
+.section-head .ops { display: flex; align-items: center; opacity: 0; transition: opacity var(--t-fast); }
+.section-card:hover .section-head .ops { opacity: 1; }
+
+.section-body { padding: 8px 14px 12px; }
+
+/* 事实条目行 */
+.fact {
+  display: flex; gap: 8px; padding: 7px 6px; border-radius: 8px; align-items: flex-start;
+  transition: background var(--t-fast); position: relative;
+}
+.fact:hover { background: var(--bg-hover); }
+.fact .k { flex: 0 0 76px; font-size: 12.5px; color: var(--text-3); padding-top: 1px; }
+.fact .v { flex: 1; font-size: 13.5px; line-height: 1.6; color: var(--text-1); }
+.fact .v[contenteditable="true"] {
+  background: rgba(201,155,100,.07); outline: 1px solid var(--copper-dim); border-radius: 5px; padding: 1px 5px;
+}
+.fact .row-ops { display: flex; gap: 2px; opacity: 0; transition: opacity var(--t-fast); align-self: center; }
+.fact:hover .row-ops { opacity: 1; }
+.row-ops button { width: 22px; height: 22px; border-radius: 5px; color: var(--text-4); font-size: 12px; display: grid; place-items: center; }
+.row-ops button:hover { color: var(--text-1); background: var(--bg-elevated); }
+
+.drag-handle { cursor: grab; color: var(--text-4); font-size: 13px; user-select: none; padding-top: 2px; }
+.drag-handle:active { cursor: grabbing; }
+
+.add-fact {
+  width: 100%; margin-top: 6px; padding: 7px; border-radius: 8px; font-size: 12.5px;
+  color: var(--text-3); border: 1px dashed var(--line-strong); background: transparent;
+  transition: all var(--t-fast);
+}
+.add-fact:hover { color: var(--copper-soft); border-color: var(--copper-dim); background: var(--copper-wash); }
+
+.add-section {
+  width: 100%; margin-top: 10px; padding: 11px; border-radius: var(--r-md); font-size: 13px;
+  color: var(--text-3); border: 1px dashed var(--line-strong); background: transparent;
+  transition: all var(--t-fast); display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.add-section:hover { color: var(--copper-soft); border-color: var(--copper-dim); background: var(--copper-wash); }
+
+/* 冲突裁决条 */
+.conflict-banner {
+  margin: 4px 6px 8px; padding: 11px 12px; border-radius: var(--r-md);
+  background: var(--red-wash); border: 1px solid rgba(201,90,67,.4);
+  font-size: 12.5px; line-height: 1.6;
+}
+.conflict-banner .cf-title { color: #f0a48e; font-weight: 600; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.conflict-banner .cf-old { color: var(--text-3); text-decoration: line-through; }
+.conflict-banner .cf-new { color: #f0c6b6; }
+.conflict-banner .cf-actions { display: flex; gap: 8px; margin-top: 9px; }
+.conflict-banner .cf-actions .btn { padding: 6px 12px; font-size: 12.5px; }
+
+/* 标签页 */
+.seg { display: flex; background: var(--bg-surface); border: 1px solid var(--line); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button {
+  flex: 1; padding: 7px 12px; border-radius: 7px; font-size: 13px; color: var(--text-3); transition: all var(--t-fast);
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.seg button.active { background: var(--bg-elevated); color: var(--copper-soft); box-shadow: var(--shadow-1); }
+.seg button .cnt { font-size: 11px; background: var(--bg-hover); border-radius: 999px; padding: 0 6px; color: var(--text-4); }
+.seg button.active .cnt { background: var(--copper-wash); color: var(--copper-soft); }
+
+/* 提示条（错误 / 成功） */
+.toast {
+  position: fixed; top: 64px; left: 50%; transform: translateX(-50%) translateY(-8px);
+  padding: 10px 18px; border-radius: var(--r-md); font-size: 13px; z-index: 1000;
+  background: var(--bg-elevated); border: 1px solid var(--line-strong); box-shadow: var(--shadow-3);
+  opacity: 0; pointer-events: none; transition: all var(--t-med); display: flex; align-items: center; gap: 8px;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.err { border-color: var(--red); background: #33150f; }
+.toast.ok { border-color: var(--teal-soft); }
+
+/* 骨架屏 */
+.skeleton { border-radius: 8px; background: linear-gradient(90deg, #241d16 25%, #2d241b 50%, #241d16 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
+@keyframes shimmer { to { background-position: -200% 0; } }
+
+/* 抽屉 */
+.drawer-scrim { position: fixed; inset: 0; background: rgba(10,7,5,.55); backdrop-filter: blur(2px); z-index: 200; opacity: 0; pointer-events: none; transition: opacity var(--t-med); }
+.drawer-scrim.show { opacity: 1; pointer-events: auto; }
+.drawer {
+  position: fixed; top: 0; right: 0; bottom: 0; width: 440px; max-width: 92vw;
+  background: var(--bg-base); border-left: 1px solid var(--line-strong); z-index: 210;
+  transform: translateX(100%); transition: transform var(--t-slow) var(--ease);
+  display: flex; flex-direction: column; box-shadow: var(--shadow-3);
+}
+.drawer.show { transform: translateX(0); }
+.drawer-head { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid var(--line); }
+.drawer-head h3 { font-size: 15px; font-weight: 600; }
+.drawer-head .sub { font-size: 12px; color: var(--text-3); }
+.drawer-head .spacer { flex: 1; }
+.drawer-body { flex: 1; overflow-y: auto; padding: 16px 20px; }
+
+/* ============================================================
+   视图 1：入口页
+   ============================================================ */
+#view-entry { flex-direction: column; overflow-y: auto; }
+.entry-wrap { max-width: 1080px; width: 100%; margin: 0 auto; padding: 48px 32px 64px; }
+
+.entry-hero { text-align: center; margin-bottom: 40px; }
+.entry-hero .lantern { font-size: 40px; display: block; margin-bottom: 6px; filter: drop-shadow(0 4px 18px rgba(201,155,100,.45)); }
+.entry-hero h1 { font-family: var(--font-story); font-size: 40px; font-weight: 600; letter-spacing: 6px; color: var(--text-1); }
+.entry-hero h1 em { color: var(--copper); font-style: normal; }
+.entry-hero p { color: var(--text-3); font-size: 14px; margin-top: 10px; letter-spacing: 1px; }
+
+.step-label { display: flex; align-items: center; gap: 10px; margin: 34px 0 14px; }
+.step-label .n { width: 22px; height: 22px; border-radius: 50%; background: var(--copper); color: #241a10; font-size: 12px; font-weight: 700; display: grid; place-items: center; }
+.step-label .t { font-size: 15px; font-weight: 600; color: var(--text-2); }
+.step-label .hint { font-size: 12px; color: var(--text-4); }
+
+.char-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 16px; }
+.char-card {
+  background: var(--bg-surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  overflow: hidden; cursor: pointer; position: relative; transition: all var(--t-med);
+}
+.char-card:hover { transform: translateY(-3px); border-color: var(--line-strong); box-shadow: var(--shadow-2); }
+.char-card.selected { border-color: var(--copper); box-shadow: 0 0 0 1px var(--copper), 0 10px 30px rgba(201,155,100,.2); }
+.char-card .img { aspect-ratio: 4/4.6; overflow: hidden; position: relative; background: var(--bg-elevated); }
+.char-card .img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform var(--t-slow); }
+.char-card:hover .img img { transform: scale(1.04); }
+.char-card .img::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, transparent 55%, rgba(18,14,10,.92)); }
+.char-card .check {
+  position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 50%;
+  background: var(--copper); color: #241a10; display: grid; place-items: center; font-size: 13px;
+  opacity: 0; transform: scale(.6); transition: all var(--t-med);
+}
+.char-card.selected .check { opacity: 1; transform: scale(1); }
+.char-card .meta { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 14px; }
+.char-card .meta .nm { font-size: 15px; font-weight: 600; }
+.char-card .meta .bio { font-size: 12px; color: var(--text-3); margin-top: 3px; line-height: 1.5; }
+.char-card.import {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  border: 1px dashed var(--line-strong); color: var(--text-3); text-align: center; padding: 32px 16px; min-height: 210px;
+}
+.char-card.import:hover { color: var(--copper-soft); border-color: var(--copper-dim); background: var(--copper-wash); }
+.char-card.import .plus { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line-strong); display: grid; place-items: center; font-size: 20px; }
+.char-card.import small { font-size: 12px; color: var(--text-4); }
+
+.world-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; }
+.world-card { padding: 16px; background: var(--bg-surface); border: 1px solid var(--line); border-radius: var(--r-lg); cursor: pointer; transition: all var(--t-med); }
+.world-card:hover { border-color: var(--line-strong); }
+.world-card.selected { border-color: var(--teal); box-shadow: 0 0 0 1px var(--teal); }
+.world-card .wc-top { display: flex; align-items: center; gap: 10px; }
+.world-card .wc-ico { width: 34px; height: 34px; border-radius: 9px; background: var(--teal-wash); color: var(--teal); display: grid; place-items: center; font-size: 16px; }
+.world-card .nm { font-size: 14px; font-weight: 600; }
+.world-card .desc { font-size: 12px; color: var(--text-3); margin-top: 8px; line-height: 1.6; }
+.world-card.none .wc-ico { background: var(--bg-hover); color: var(--text-4); }
+
+.identity-row { display: flex; gap: 14px; }
+.field { flex: 1; }
+.field label { display: block; font-size: 12.5px; color: var(--text-3); margin-bottom: 7px; }
+.field input {
+  width: 100%; padding: 11px 14px; border-radius: var(--r-md); font-size: 14px;
+  background: var(--bg-surface); border: 1px solid var(--line-strong); transition: all var(--t-fast);
+}
+.field input:focus { outline: none; border-color: var(--copper); box-shadow: 0 0 0 3px var(--copper-wash); }
+.field input::placeholder { color: var(--text-4); }
+
+.entry-cta { display: flex; justify-content: center; margin-top: 44px; }
+.entry-cta .btn-primary { font-size: 16px; padding: 14px 44px; border-radius: var(--r-lg); }
+
+/* ============================================================
+   视图 2：旅程页（主界面）
+   ============================================================ */
+#view-journey { flex-direction: row; min-height: 0; }
+
+/* —— 故事舞台（左）—— */
+.stage { flex: 1; min-width: 0; display: flex; flex-direction: column; position: relative; }
+
+.scene-banner { position: relative; height: 200px; flex: 0 0 200px; overflow: hidden; }
+.scene-banner > img { width: 100%; height: 100%; object-fit: cover; }
+.scene-banner .veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(18,14,10,.15), transparent 35%, rgba(26,21,16,.55) 75%, var(--bg-base) 100%); }
+.scene-banner .scene-tags { position: absolute; top: 14px; left: 18px; display: flex; gap: 8px; }
+.scene-banner .scene-tags .chip { background: rgba(18,14,10,.55); backdrop-filter: blur(6px); }
+.scene-banner .scene-title {
+  position: absolute; left: 18px; bottom: 16px;
+  font-family: var(--font-story); font-size: 22px; font-weight: 600; letter-spacing: 2px;
+  text-shadow: 0 2px 12px rgba(0,0,0,.7);
+}
+.scene-banner .scene-summary { position: absolute; left: 18px; bottom: -8px; font-size: 12.5px; color: var(--text-2); }
+
+/* 立绘卡片（悬浮在 banner 右侧） */
+.portrait-card {
+  position: absolute; right: 22px; bottom: -18px; width: 108px; height: 150px;
+  border-radius: var(--r-lg); overflow: hidden; border: 1px solid var(--line-strong);
+  box-shadow: var(--shadow-3); z-index: 5;
+}
+.portrait-card img { width: 100%; height: 100%; object-fit: cover; }
+.portrait-card .p-name {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 6px 8px; font-size: 12px; font-weight: 600;
+  background: linear-gradient(180deg, transparent, rgba(18,14,10,.9)); text-align: center;
+}
+
+/* 剧情流 */
+.story-flow { flex: 1; overflow-y: auto; padding: 40px 28px 24px; scroll-behavior: smooth; }
+.story-col { max-width: 640px; margin: 0 auto; }
+.beat { margin-bottom: 34px; animation: beatIn .6s var(--ease); }
+@keyframes beatIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.beat .beat-meta { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+.beat .beat-meta .line { flex: 1; height: 1px; background: linear-gradient(90deg, var(--line-strong), transparent); }
+.beat .beat-meta .tag { font-size: 12px; color: var(--copper-dim); letter-spacing: 1px; display: flex; align-items: center; gap: 7px; white-space: nowrap; }
+.beat .beat-meta .tag::before { content: "◆"; font-size: 9px; color: var(--copper); }
+.beat p {
+  font-family: var(--font-story); font-size: 17px; line-height: 2.0; color: var(--text-1);
+  text-align: justify; letter-spacing: .3px;
+}
+.beat p + p { margin-top: 16px; }
+.beat .narrator { color: var(--text-2); font-style: italic; }
+.beat .dialogue { padding-left: 18px; border-left: 2px solid var(--copper-dim); color: var(--copper-soft); }
+
+/* 流式打字光标 */
+.typing-caret { display: inline-block; width: 2px; height: 1.05em; background: var(--copper); vertical-align: -0.15em; margin-left: 1px; animation: blink 1s steps(2) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* 输入区 */
+.composer {
+  flex: 0 0 auto; padding: 14px 28px 18px; background: linear-gradient(180deg, transparent, var(--bg-void) 30%);
+  position: relative; z-index: 6;
+}
+.composer-inner { max-width: 640px; margin: 0 auto; }
+.composer-box {
+  display: flex; align-items: flex-end; gap: 10px; padding: 10px 12px;
+  background: var(--bg-surface); border: 1px solid var(--line-strong); border-radius: var(--r-lg);
+  transition: all var(--t-med); position: relative;
+}
+.composer-box:focus-within { border-color: var(--copper); box-shadow: 0 0 0 3px var(--copper-wash); }
+.composer-box textarea {
+  flex: 1; resize: none; border: none; background: transparent; font-size: 14.5px; line-height: 1.7;
+  max-height: 140px; outline: none; color: var(--text-1);
+}
+.composer-box textarea::placeholder { color: var(--text-4); }
+.composer-tools { display: flex; align-items: center; gap: 4px; }
+.send-btn {
+  width: 38px; height: 38px; border-radius: 10px; background: var(--copper); color: #241a10;
+  display: grid; place-items: center; font-size: 16px; transition: all var(--t-fast); flex: 0 0 auto;
+}
+.send-btn:hover { background: var(--copper-soft); }
+.send-btn:disabled { background: var(--bg-hover); color: var(--text-4); cursor: not-allowed; }
+.composer-hint { font-size: 11.5px; color: var(--text-4); text-align: center; margin-top: 8px; letter-spacing: .5px; }
+
+/* 流式思考指示 */
+.streaming-indicator { display: flex; align-items: center; gap: 10px; padding: 14px 0; }
+.streaming-indicator .av { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line-strong); overflow: hidden; flex: 0 0 auto; }
+.streaming-indicator .av img { width: 100%; height: 100%; object-fit: cover; }
+.streaming-indicator .dots { display: flex; gap: 4px; }
+.streaming-indicator .dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--copper); animation: dot 1.2s infinite; }
+.streaming-indicator .dots span:nth-child(2) { animation-delay: .15s; }
+.streaming-indicator .dots span:nth-child(3) { animation-delay: .3s; }
+@keyframes dot { 0%,60%,100% { opacity: .25; transform: translateY(0);} 30% { opacity: 1; transform: translateY(-3px);} }
+
+/* —— 右侧信息面板 —— */
+.side-panel {
+  flex: 0 0 384px; width: 384px; display: flex; flex-direction: column; min-height: 0;
+  border-left: 1px solid var(--line); background: var(--bg-base);
+  transition: margin-right var(--t-slow) var(--ease);
+}
+.side-panel.collapsed { margin-right: -384px; }
+.side-head { display: flex; align-items: center; gap: 8px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+.side-head h2 { font-size: 14px; font-weight: 600; letter-spacing: 1px; }
+.side-head .spacer { flex: 1; }
+.side-scroll { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+.side-scroll .seg { margin-bottom: 2px; }
+.panel-empty { text-align: center; padding: 40px 20px; color: var(--text-4); font-size: 13px; line-height: 1.8; }
+
+/* 折叠切换（窄屏）*/
+.collapse-tab {
+  position: absolute; top: 50%; right: 0; transform: translateY(-50%);
+  width: 22px; height: 64px; border-radius: 11px 0 0 11px; background: var(--bg-elevated);
+  border: 1px solid var(--line-strong); border-right: none; color: var(--text-3);
+  display: flex; align-items: center; justify-content: center; font-size: 11px; z-index: 20;
+  transition: all var(--t-fast);
+}
+.collapse-tab:hover { color: var(--copper-soft); }
+.collapse-tab.collapsed { right: auto; }
+
+/* ============================================================
+   视图 3：历史页
+   ============================================================ */
+#view-history { flex-direction: column; overflow-y: auto; }
+.history-wrap { max-width: 920px; width: 100%; margin: 0 auto; padding: 44px 32px 64px; }
+.history-wrap h1 { font-family: var(--font-story); font-size: 30px; letter-spacing: 3px; margin-bottom: 6px; }
+.history-wrap .sub { color: var(--text-3); font-size: 13.5px; margin-bottom: 28px; }
+.journey-list { display: flex; flex-direction: column; gap: 12px; }
+.journey-item {
+  display: flex; align-items: center; gap: 16px; padding: 16px 18px;
+  background: var(--bg-surface); border: 1px solid var(--line); border-radius: var(--r-lg);
+  transition: all var(--t-med); cursor: pointer;
+}
+.journey-item:hover { border-color: var(--line-strong); background: var(--bg-elevated); transform: translateX(3px); }
+.journey-item .thumb { width: 64px; height: 64px; border-radius: 12px; overflow: hidden; flex: 0 0 auto; border: 1px solid var(--line-strong); }
+.journey-item .thumb img { width: 100%; height: 100%; object-fit: cover; }
+.journey-item .ji-main { flex: 1; min-width: 0; }
+.journey-item .ji-title { font-size: 15px; font-weight: 600; }
+.journey-item .ji-meta { font-size: 12px; color: var(--text-3); margin-top: 4px; display: flex; gap: 12px; flex-wrap: wrap; }
+.journey-item .ji-meta span { display: inline-flex; align-items: center; gap: 5px; }
+.journey-item .ji-arrow { color: var(--text-4); font-size: 16px; }
+
+/* ============================================================
+   视图 4：诊断视图（与主流程视觉隔离）
+   ============================================================ */
+#view-diagnostic { flex-direction: row; min-height: 0; }
+.diag-banner { padding: 18px 28px; border-bottom: 1px solid var(--line); background: #101418; display: flex; align-items: center; gap: 12px; }
+.diag-banner .db-ico { width: 34px; height: 34px; border-radius: 9px; background: var(--teal-wash); color: var(--teal); display: grid; place-items: center; font-size: 16px; }
+.diag-banner h2 { font-size: 15px; font-weight: 600; }
+.diag-banner p { font-size: 12px; color: var(--text-3); margin-top: 2px; }
+.diag-banner .badge-out { margin-left: auto; font-size: 11px; color: var(--teal); border: 1px solid var(--teal-soft); padding: 3px 10px; border-radius: 999px; }
+
+.diag-layout { flex: 1; display: flex; min-height: 0; }
+.diag-main { flex: 1; min-width: 0; overflow-y: auto; padding: 24px 28px; }
+.diag-side { flex: 0 0 320px; border-left: 1px solid var(--line); overflow-y: auto; padding: 24px; background: #101418; }
+
+.code-block {
+  background: #0b1116; border: 1px solid #1c2933; border-radius: var(--r-md); padding: 14px 16px;
+  font-family: var(--font-mono); font-size: 12.5px; line-height: 1.7; color: #9fc4c0; overflow-x: auto;
+}
+.code-block .k { color: #6fb3ad; }
+.code-block .s { color: #d9b98a; }
+.code-block .c { color: #5a6b76; }
+.code-block .hl { background: rgba(201,90,67,.25); border-radius: 3px; padding: 0 2px; }
+
+.diag-card { background: var(--bg-surface); border: 1px solid var(--line); border-radius: var(--r-lg); margin-bottom: 18px; overflow: hidden; }
+.diag-card .dc-head { padding: 13px 18px; border-bottom: 1px solid var(--line); font-size: 13.5px; font-weight: 600; color: var(--text-2); display: flex; align-items: center; gap: 8px; }
+.diag-card .dc-body { padding: 16px 18px; }
+.param-row { display: flex; align-items: center; justify-content: space-between; padding: 9px 0; border-bottom: 1px dashed var(--line); font-size: 13px; }
+.param-row:last-child { border-bottom: none; }
+.param-row .pk { color: var(--text-2); }
+.param-row .pv { color: var(--text-3); font-family: var(--font-mono); font-size: 12.5px; }
+.param-row .pv.hot { color: var(--copper-soft); }
+
+.decision-row { padding: 11px 14px; border-radius: var(--r-md); background: var(--bg-elevated); margin-bottom: 8px; font-size: 12.5px; }
+.decision-row .dr-top { display: flex; align-items: center; gap: 8px; }
+.decision-row .dr-tag { font-size: 10.5px; padding: 2px 7px; border-radius: 5px; }
+.decision-row .dr-tag.on { background: var(--teal-wash); color: var(--teal); }
+.decision-row .dr-tag.off { background: var(--bg-hover); color: var(--text-4); }
+.decision-row .dr-name { font-weight: 600; }
+.decision-row .dr-why { color: var(--text-3); margin-top: 5px; line-height: 1.6; }
+
+/* ============================================================
+   响应式：窄屏折叠右侧面板为底部抽屉
+   ============================================================ */
+.mobile-panel-toggle { display: none; }
+@media (max-width: 860px) {
+  .side-panel { flex-basis: 0; width: 0; overflow: hidden; }
+  .mobile-panel-toggle {
+    display: inline-flex; position: fixed; right: 14px; bottom: 90px; z-index: 60;
+    width: 46px; height: 46px; border-radius: 50%; background: var(--copper); color: #241a10;
+    align-items: center; justify-content: center; font-size: 18px; box-shadow: var(--shadow-3);
+  }
+  .side-panel.mobile-open { position: fixed; inset: 52px 0 0 0; width: auto; flex-basis: auto; z-index: 90; }
+  .scene-banner { height: 160px; flex-basis: 160px; }
+  .portrait-card { width: 84px; height: 118px; }
+  .story-flow { padding: 32px 18px 16px; }
+  .composer { padding: 12px 16px 14px; }
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- ===================== 顶部栏 ===================== -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="mark">⛩</span>
+      酒馆 <em style="color:var(--copper);font-style:normal;">Tavern</em>
+      <small>沉浸故事空间 · 设计稿</small>
+    </div>
+    <div class="spacer"></div>
+    <nav class="prototype-nav" aria-label="原型视图切换">
+      <button data-view="entry" class="active">入口</button>
+      <button data-view="journey">旅程</button>
+      <button data-view="history">历史</button>
+      <button data-view="diagnostic">诊断</button>
+    </nav>
+  </header>
+
+  <!-- ===================== 视图 1：入口页 ===================== -->
+  <main class="view active" id="view-entry">
+    <div class="entry-wrap">
+      <div class="entry-hero">
+        <span class="lantern">🏮</span>
+        <h1>酒馆 <em>Tavern</em></h1>
+        <p>选一张角色卡，推开那扇门，故事就此开始。</p>
+      </div>
+
+      <div class="step-label"><span class="n">1</span><span class="t">选择角色卡</span><span class="hint">必选 · 你将要共同书写故事的那个人</span></div>
+      <div class="char-grid" id="charGrid">
+        <div class="char-card selected" data-char="雪莉" data-img="assets/portrait-secretary.png">
+          <div class="img"><img src="assets/portrait-secretary.png" alt="雪莉"><span class="check">✓</span></div>
+          <div class="meta"><div class="nm">雪莉 · 猫娘秘书</div><div class="bio">毒舌却可靠的港区情报贩子，欠你一份人情。</div></div>
+        </div>
+        <div class="char-card" data-char="苏清寒" data-img="assets/portrait-sect-sister.png">
+          <div class="img"><img src="assets/portrait-sect-sister.png" alt="苏清寒"><span class="check">✓</span></div>
+          <div class="meta"><div class="nm">苏清寒 · 修仙师姐</div><div class="bio">清冷出尘的宗门师姐，与你同赴一桩旧约。</div></div>
+        </div>
+        <div class="char-card import" onclick="toast('拖拽 JSON / PNG 到此处即可导入角色卡','ok')">
+          <div class="plus">＋</div>
+          <div>导入角色卡</div>
+          <small>支持 JSON / PNG 拖拽</small>
+        </div>
+      </div>
+
+      <div class="step-label"><span class="n">2</span><span class="t">选择世界书</span><span class="hint">可选 · 不选则开启自由世界</span></div>
+      <div class="world-grid" id="worldGrid">
+        <div class="world-card selected">
+          <div class="wc-top"><span class="wc-ico">🌊</span><span class="nm">潮汐城 · 剑与法环</span></div>
+          <div class="desc">临海港城，魔法需以「记忆」为代价。商会、法师塔与港区帮派暗流涌动。</div>
+        </div>
+        <div class="world-card">
+          <div class="wc-top"><span class="wc-ico">🌆</span><span class="nm">夜之城 · 2077</span></div>
+          <div class="desc">霓虹与义体横行的未来都市，公司、帮派与游民共舞。</div>
+        </div>
+        <div class="world-card none" onclick="toast('可先自由开局，世界会随故事生长','ok')">
+          <div class="wc-top"><span class="wc-ico">◇</span><span class="nm">暂不选择</span></div>
+          <div class="desc">从空白开始，让世界在旅途中一点点被点亮。</div>
+        </div>
+      </div>
+
+      <div class="step-label"><span class="n">3</span><span class="t">你的身份</span><span class="hint">可选 · 定义玩家在故事中的位置</span></div>
+      <div class="identity-row">
+        <div class="field"><label>昵称</label><input placeholder="如：旅行者 / 无名氏" id="playerName"></div>
+        <div class="field"><label>人设（一句话）</label><input placeholder="如：一个欠了债的赏金猎人"></div>
+      </div>
+
+      <div class="entry-cta">
+        <button class="btn btn-primary" onclick="startJourney()">开始旅程 →</button>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================== 视图 2：旅程页 ===================== -->
+  <main class="view" id="view-journey">
+    <div class="stage" id="stage">
+      <div class="scene-banner">
+        <img src="assets/scene-tavern.png" alt="场景">
+        <div class="veil"></div>
+        <div class="scene-tags">
+          <span class="chip"><span class="dot"></span>深夜</span>
+          <span class="chip"><span class="dot copper"></span>潮汐城 · 港区</span>
+          <span class="chip">🌧 中雨</span>
+        </div>
+        <div class="scene-title">咸风角酒馆</div>
+        <div class="scene-summary">临海的小酒馆，木门吱呀作响，烛火在雨夜里摇曳。</div>
+        <div class="portrait-card" id="portraitCard">
+          <img id="portraitImg" src="assets/portrait-secretary.png" alt="立绘">
+          <div class="p-name" id="portraitName">雪莉</div>
+        </div>
+      </div>
+
+      <div class="story-flow" id="storyFlow">
+        <div class="story-col" id="storyCol">
+          <!-- 剧情段由 JS 预置 -->
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="composer-inner">
+          <div class="composer-box">
+            <textarea id="composerInput" rows="1" placeholder="接下来，你要做什么？" oninput="autosize(this)"></textarea>
+            <div class="composer-tools">
+              <button class="icon-btn" title="插入骰子" onclick="toast('骰子面板（设计占位）','ok')">🎲</button>
+              <button class="send-btn" id="sendBtn" title="推进故事" onclick="simulateStream()">➤</button>
+            </div>
+          </div>
+          <div class="composer-hint">一次输入 = 一段剧情 · 由 GM 续写</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 右侧信息面板 -->
+    <aside class="side-panel" id="sidePanel">
+      <div class="side-head">
+        <h2>旅志</h2>
+        <span class="badge" style="font-size:11px;color:var(--text-4)">角色 · 世界 · 记忆</span>
+        <div class="spacer"></div>
+        <button class="icon-btn" title="事实审计" onclick="openDrawer('audit')">🕮</button>
+        <button class="icon-btn" title="设置" onclick="openDrawer('settings')">⚙</button>
+        <button class="icon-btn" title="收起面板" onclick="togglePanel()" id="panelCollapseBtn">◀</button>
+      </div>
+      <div class="side-scroll" id="sideScroll">
+        <div class="seg" role="tablist">
+          <button class="active" data-tab="char">角色 <span class="cnt">9</span></button>
+          <button data-tab="world">世界观 <span class="cnt">6</span></button>
+        </div>
+
+        <div id="tab-char" class="tab-pane">
+          <div id="charSections"></div>
+          <button class="add-section" onclick="addSection('char')">＋ 添加栏目</button>
+        </div>
+
+        <div id="tab-world" class="tab-pane" style="display:none">
+          <div id="worldSections"></div>
+          <button class="add-section" onclick="addSection('world')">＋ 添加栏目</button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- 折叠标签（宽屏折叠）-->
+    <button class="collapse-tab" id="collapseTab" onclick="togglePanel()">◀</button>
+  </main>
+
+  <!-- ===================== 视图 3：历史页 ===================== -->
+  <main class="view" id="view-history">
+    <div class="history-wrap">
+      <h1>我的旅程</h1>
+      <div class="sub">每一段旅程，都是一段尚未讲完的故事。</div>
+      <div class="journey-list">
+        <div class="journey-item" onclick="toast('恢复旅程「咸风角的雨夜」','ok')">
+          <div class="thumb"><img src="assets/portrait-secretary.png" alt=""></div>
+          <div class="ji-main">
+            <div class="ji-title">咸风角的雨夜</div>
+            <div class="ji-meta">
+              <span>👤 雪莉 · 猫娘秘书</span><span>🌊 潮汐城</span><span>⏱ 2 小时前</span><span>📖 第 14 段</span>
+            </div>
+          </div>
+          <span class="ji-arrow">›</span>
+        </div>
+        <div class="journey-item" onclick="toast('恢复旅程「宗门旧约」','ok')">
+          <div class="thumb"><img src="assets/portrait-sect-sister.png" alt=""></div>
+          <div class="ji-main">
+            <div class="ji-title">宗门旧约</div>
+            <div class="ji-meta">
+              <span>👤 苏清寒 · 修仙师姐</span><span>🌆 自由世界</span><span>⏱ 昨天</span><span>📖 第 7 段</span>
+            </div>
+          </div>
+          <span class="ji-arrow">›</span>
+        </div>
+        <div class="journey-item" onclick="toast('恢复旅程「无名之夜」','ok')">
+          <div class="thumb"><img src="assets/scene-tavern.png" alt=""></div>
+          <div class="ji-main">
+            <div class="ji-title">无名之夜</div>
+            <div class="ji-meta">
+              <span>👤 无名氏</span><span>🌊 潮汐城</span><span>⏱ 上周</span><span>📖 第 31 段</span>
+            </div>
+          </div>
+          <span class="ji-arrow">›</span>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- ===================== 视图 4：诊断视图 ===================== -->
+  <main class="view" id="view-diagnostic">
+    <div style="flex:1;display:flex;flex-direction:column;min-height:0">
+      <div class="diag-banner">
+        <span class="db-ico">🔬</span>
+        <div>
+          <h2>诊断视图 · Diagnostic</h2>
+          <p>模型参数、Prompt 检查器与上下文激活决策。与故事主流程视觉隔离，仅供排查。</p>
+        </div>
+        <span class="badge-out">独立于主流程</span>
+      </div>
+      <div class="diag-layout">
+        <div class="diag-main">
+          <div class="diag-card">
+            <div class="dc-head">📝 Prompt 检查器</div>
+            <div class="dc-body">
+              <div class="code-block"><span class="c">// 当前注入的系统提示（可读、可折叠，默认收起）</span>
+<span class="k">system</span>: 你是一位沉浸式故事主持（GM）……
+<span class="k">character</span>: <span class="s">"雪莉"</span> · 猫娘秘书 · 毒舌可靠
+<span class="k">world</span>: 潮汐城 · 剑与法环
+<span class="c">// 已激活栏目（9 项）</span>
+<span class="hl">→ 地理 栏检测到潜在冲突（城A 方位）</span></div>
+            </div>
+          </div>
+          <div class="diag-card">
+            <div class="dc-head">🧭 上下文激活决策</div>
+            <div class="dc-body" id="decisionList">
+              <div class="decision-row">
+                <div class="dr-top"><span class="dr-tag on">已激活</span><span class="dr-name">角色 · 秘密</span></div>
+                <div class="dr-why">当前剧情触及「尾巴」这一细节，判定相关。</div>
+              </div>
+              <div class="decision-row">
+                <div class="dr-top"><span class="dr-tag off">未激活</span><span class="dr-name">世界 · 势力 · 法师塔</span></div>
+                <div class="dr-why">本段与法师塔无关联，跳过以节省上下文。</div>
+              </div>
+              <div class="decision-row">
+                <div class="dr-top"><span class="dr-tag off">未激活</span><span class="dr-name">世界 · 历史 · 大灾变</span></div>
+                <div class="dr-why">距离当前场景较远，暂不注入。</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="diag-side">
+          <div class="diag-card" style="margin-bottom:18px">
+            <div class="dc-head">⚙ 模型与生成参数</div>
+            <div class="dc-body">
+              <div class="param-row"><span class="pk">模型</span><span class="pv">deepseek-chat</span></div>
+              <div class="param-row"><span class="pk">温度 temperature</span><span class="pv hot">0.9</span></div>
+              <div class="param-row"><span class="pk">回复长度</span><span class="pv">中等</span></div>
+              <div class="param-row"><span class="pk">上下文窗口</span><span class="pv">128k / 已用 34%</span></div>
+              <div class="param-row"><span class="pk">流式输出</span><span class="pv">开启</span></div>
+            </div>
+          </div>
+          <div class="diag-card">
+            <div class="dc-head">🧾 原始数据</div>
+            <div class="dc-body">
+              <div class="code-block"><span class="c">// 角色卡 asset id 等技术字段仅在此处展示</span>
+asset_id: <span class="s">"char_8f2c1a"</span>
+format_version: <span class="s">"3"</span>
+token_estimate: <span class="s">"1,842"</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ===================== 抽屉：事实审计 ===================== -->
+<div class="drawer-scrim" id="auditScrim" onclick="closeDrawer('audit')"></div>
+<div class="drawer" id="drawer-audit">
+  <div class="drawer-head">
+    <div>
+      <h3>事实审计</h3>
+      <div class="sub">按时间列出所有记忆变更（含被拒绝的变更及原因）</div>
+    </div>
+    <div class="spacer"></div>
+    <button class="icon-btn" onclick="closeDrawer('audit')">✕</button>
+  </div>
+  <div class="drawer-body" id="auditBody">
+    <div class="audit-day" style="font-size:12px;color:var(--text-4);margin:6px 0 10px">今天 · 15:20</div>
+    <div class="audit-item" style="display:flex;gap:10px;padding:12px;border:1px solid var(--line);border-radius:10px;margin-bottom:10px;background:var(--bg-surface)">
+      <span style="font-size:16px">🟢</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600">地理 · 城A 方位 <span class="chip" style="margin-left:6px;font-size:10px">已接受</span></div>
+        <div style="font-size:12px;color:var(--text-3);margin-top:5px">「城A 在东北」→ 覆盖原值「城A 在西北」</div>
+      </div>
+    </div>
+    <div class="audit-item" style="display:flex;gap:10px;padding:12px;border:1px solid var(--line);border-radius:10px;margin-bottom:10px;background:var(--bg-surface)">
+      <span style="font-size:16px">🔴</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600">势力 · 法师塔阵营 <span class="chip" style="margin-left:6px;font-size:10px;color:#e08d76">已拒绝</span></div>
+        <div style="font-size:12px;color:var(--text-3);margin-top:5px">「法师塔效忠王室」被拒 · 原因：与「法师塔保持中立」矛盾</div>
+      </div>
+    </div>
+    <div class="audit-day" style="font-size:12px;color:var(--text-4);margin:16px 0 10px">昨天</div>
+    <div class="audit-item" style="display:flex;gap:10px;padding:12px;border:1px solid var(--line);border-radius:10px;margin-bottom:10px;background:var(--bg-surface)">
+      <span style="font-size:16px">🟡</span>
+      <div style="flex:1">
+        <div style="font-size:13px;font-weight:600">角色 · 秘密 <span class="chip" style="margin-left:6px;font-size:10px">已撤销</span></div>
+        <div style="font-size:12px;color:var(--text-3);margin-top:5px">「怕黑」已撤销 · 玩家手动撤销</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== 抽屉：设置 ===================== -->
+<div class="drawer-scrim" id="settingsScrim" onclick="closeDrawer('settings')"></div>
+<div class="drawer" id="drawer-settings">
+  <div class="drawer-head">
+    <div><h3>设置</h3><div class="sub">模型与生成参数 · 默认收起于二级入口</div></div>
+    <div class="spacer"></div>
+    <button class="icon-btn" onclick="closeDrawer('settings')">✕</button>
+  </div>
+  <div class="drawer-body">
+    <div class="field" style="margin-bottom:16px"><label>模型</label><input value="deepseek-chat" readonly style="opacity:.7"></div>
+    <div class="field" style="margin-bottom:16px">
+      <label>温度 temperature · <span style="color:var(--copper)">0.9</span></label>
+      <input type="range" min="0" max="2" step="0.1" value="0.9" style="width:100%;accent-color:var(--copper)">
+    </div>
+    <div class="field" style="margin-bottom:16px"><label>回复长度</label><input value="中等"></div>
+    <div class="field" style="margin-bottom:16px"><label>流式输出</label><input type="checkbox" checked> 开启打字效果</div>
+  </div>
+</div>
+
+<!-- ===================== 移动端面板开关 ===================== -->
+<button class="mobile-panel-toggle" id="mobilePanelBtn" onclick="togglePanelMobile()">🗂</button>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ 数据：角色栏目（可增删改排序）============ */
+const charData = [
+  { name: "身份", items: [["身份","猫娘 · 前港区情报贩子，现为你的私人秘书"]] },
+  { name: "外貌", items: [["外貌","银灰长发，琥珀色竖瞳，黑灰相间的猫耳与尾"]] },
+  { name: "性格", items: [["性格","毒舌、傲娇，但对你有隐藏的依赖"]] },
+  { name: "背景", items: [["背景","出身港区情报贩子，欠你一份人情，一直在找机会还"]] },
+  { name: "关系", items: [["你","雇主 / 债主，也是她不愿承认的牵挂"]] },
+  { name: "目标", items: [["目标","还清人情，查清旧案真相"]] },
+  { name: "能力", items: [["能力","情报网络 · 潜行 · 夜视"]] },
+  { name: "秘密", items: [["秘密","尾巴其实很喜欢被摸，但打死不承认"]] },
+  { name: "状态", items: [["状态","微醺"]] },
+];
+const worldData = [
+  { name: "地理", items: [["潮汐城","临海港城，北接雪原"], ["城A 方位","西北"], ["城A 方位(新)","东北"]], conflict: true },
+  { name: "历史", items: [["大灾变","三百年前，魔法之门初开"]] },
+  { name: "势力", items: [["商会","掌控港口贸易"], ["法师塔","保持中立"], ["港区帮派","鱼龙混杂"]] },
+  { name: "规则", items: [["魔法代价","施法需支付「记忆」"]] },
+  { name: "物品", items: [["魂灯","照亮记忆的灯"]] },
+  { name: "事件", items: [["潮汐城大火","未解悬案"]] },
+];
+
+/* ============ 剧情段 ============ */
+const beats = [
+  { tag: "深夜 · 咸风角酒馆", paras: [
+    "雨是从后半夜开始下的。你推开「咸风角」的木门时，门轴发出一声悠长的呻吟，像在提醒这间临海小酒馆里剩下的每一个人——又有人来了。",
+    "吧台后的老板头也不抬，只朝最里面那张靠窗的桌子抬了抬下巴。雪莉就坐在那儿，尾巴懒懒地搭在椅背的横木上，琥珀色的眼睛在烛光里眯成一条缝。"
+  ]},
+  { tag: "窗边 · 烛光下", paras: [
+    { d: "「你迟到了。」她说，用食指点了点桌面上那只已经空掉的锡杯，「欠我的那杯酒，今晚得加倍。」" }
+  ]},
+];
+
+let streaming = false;
+function renderBeats(container) {
+  container.innerHTML = "";
+  beats.forEach(b => {
+    const el = document.createElement("div");
+    el.className = "beat";
+    el.innerHTML = `<div class="beat-meta"><span class="line"></span><span class="tag">${b.tag}</span><span class="line"></span></div>`;
+    b.paras.forEach(p => {
+      const t = typeof p === "string" ? "p" : "dialogue";
+      const pe = document.createElement("p");
+      if (t === "dialogue") pe.className = "dialogue";
+      pe.textContent = typeof p === "string" ? p : p.d;
+      el.appendChild(pe);
+    });
+    container.appendChild(el);
+  });
+}
+
+/* ============ 视图切换 ============ */
+document.querySelectorAll(".prototype-nav button").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll(".prototype-nav button").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+    document.getElementById("view-" + b.dataset.view).classList.add("active");
+  };
+});
+
+/* ============ 入口页交互 ============ */
+document.querySelectorAll("#charGrid .char-card:not(.import)").forEach(c => {
+  c.onclick = () => {
+    document.querySelectorAll("#charGrid .char-card").forEach(x => x.classList.remove("selected"));
+    c.classList.add("selected");
+  };
+});
+document.querySelectorAll("#worldGrid .world-card").forEach(c => {
+  c.onclick = () => {
+    document.querySelectorAll("#worldGrid .world-card").forEach(x => x.classList.remove("selected"));
+    c.classList.add("selected");
+  };
+});
+
+function startJourney() {
+  const sel = document.querySelector("#charGrid .char-card.selected");
+  const name = sel ? sel.dataset.char : "雪莉";
+  const img = sel ? sel.dataset.img : "assets/portrait-secretary.png";
+  document.getElementById("portraitName").textContent = name;
+  document.getElementById("portraitImg").src = img;
+  document.getElementById("portraitCard").querySelector("img").src = img;
+  switchView("journey");
+  toast("旅程已开启 · 欢迎回到「咸风角」", "ok");
+}
+function switchView(name) {
+  document.querySelectorAll(".prototype-nav button").forEach(x => x.classList.toggle("active", x.dataset.view === name));
+  document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
+  document.getElementById("view-" + name).classList.add("active");
+}
+
+/* ============ 栏目渲染 ============ */
+function renderSections(targetId, data, prefix) {
+  const box = document.getElementById(targetId);
+  box.innerHTML = "";
+  data.forEach((sec, si) => {
+    const card = document.createElement("div");
+    card.className = "section-card" + (sec.conflict ? " conflict" : "");
+    let inner = `<div class="section-head">
+      <span class="drag-handle" title="拖动排序">⋮⋮</span>
+      <span class="title"><span class="ico">▣</span><span class="sec-name" contenteditable="false">${sec.name}</span> <span class="badge">${sec.items.length}</span></span>
+      <span class="spacer"></span>
+      <span class="ops">
+        <button class="icon-btn" title="重命名" onclick="renameSection('${prefix}',${si})">✎</button>
+        <button class="icon-btn" title="删除栏目" onclick="deleteSection('${prefix}',${si})">🗑</button>
+      </span>
+    </div><div class="section-body">`;
+    if (sec.conflict) {
+      inner += `<div class="conflict-banner">
+        <div class="cf-title">⚠ 设定冲突</div>
+        新值 <span class="cf-new">「城A 在东北」</span> 与已记录 <span class="cf-old">「城A 在西北」</span> 矛盾
+        <div class="cf-actions">
+          <button class="btn btn-primary" onclick="resolveConflict(this,'keep')">保留新值</button>
+          <button class="btn btn-danger" onclick="resolveConflict(this,'drop')">抛弃</button>
+        </div>
+      </div>`;
+    }
+    sec.items.forEach((it, ii) => {
+      inner += `<div class="fact">
+        <span class="k">${it[0]}</span>
+        <span class="v" onclick="editFact(this)">${it[1]}</span>
+        <span class="row-ops">
+          <button title="编辑" onclick="event.stopPropagation();editFact(this.parentElement.previousElementSibling)">✎</button>
+          <button title="删除" onclick="deleteFact(this)">✕</button>
+        </span>
+      </div>`;
+    });
+    inner += `<button class="add-fact" onclick="addFact(this)">＋ 添加事实</button></div>`;
+    card.innerHTML = inner;
+    box.appendChild(card);
+  });
+}
+
+function renderAllSections() {
+  renderSections("charSections", charData, "char");
+  renderSections("worldSections", worldData, "world");
+}
+
+/* 栏目操作 */
+function addSection(prefix) {
+  const arr = prefix === "char" ? charData : worldData;
+  const name = prompt("新栏目名称", "新栏目");
+  if (!name) return;
+  arr.push({ name, items: [] });
+  renderAllSections();
+  toast(`已添加栏目「${name}」`, "ok");
+}
+function renameSection(prefix, si) {
+  const arr = prefix === "char" ? charData : worldData;
+  const n = prompt("重命名栏目", arr[si].name);
+  if (n) { arr[si].name = n; renderAllSections(); }
+}
+function deleteSection(prefix, si) {
+  const arr = prefix === "char" ? charData : worldData;
+  if (!confirm(`删除栏目「${arr[si].name}」？此操作可撤销。`)) return;
+  const removed = arr.splice(si, 1)[0];
+  renderAllSections();
+  toast(`已删除栏目「${removed.name}」（可撤销）`, "ok");
+}
+
+/* 事实编辑（行内 + 保存/取消） */
+function editFact(el) {
+  if (el.getAttribute("contenteditable") === "true") return;
+  el.setAttribute("contenteditable", "true");
+  const orig = el.textContent;
+  el.focus();
+  const save = () => { el.removeAttribute("contenteditable"); if (el.textContent !== orig) toast("已保存事实修改", "ok"); };
+  el.onblur = save;
+  el.onkeydown = e => { if (e.key === "Enter") { e.preventDefault(); el.blur(); } if (e.key === "Escape") { el.textContent = orig; el.blur(); } };
+}
+function addFact(btn) {
+  const body = btn.parentElement;
+  const k = prompt("事实名（键）", "新事实");
+  if (!k) return;
+  const row = document.createElement("div");
+  row.className = "fact";
+  row.innerHTML = `<span class="k">${k}</span><span class="v" onclick="editFact(this)">（待填写）</span><span class="row-ops"><button onclick="deleteFact(this)">✕</button></span>`;
+  body.insertBefore(row, btn);
+  toast(`已添加事实「${k}」`, "ok");
+}
+function deleteFact(btn) {
+  const row = btn.closest(".fact");
+  row.remove();
+  toast("已删除该事实（可撤销）", "ok");
+}
+
+/* 冲突裁决 */
+function resolveConflict(btn, action) {
+  const card = btn.closest(".section-card");
+  const banner = btn.closest(".conflict-banner");
+  banner.innerHTML = action === "keep"
+    ? `<div class="cf-title" style="color:var(--teal)">✓ 已保留新值</div>「城A 在东北」已写入世界观，原值移入审计历史。`
+    : `<div class="cf-title">✕ 已抛弃</div>维持原值「城A 在西北」，变更已记入审计历史。`;
+  card.classList.remove("conflict");
+  if (action === "keep") {
+    worldData[0].items = worldData[0].items.filter(x => x[0] !== "城A 方位" && x[0] !== "城A 方位(新)");
+    worldData[0].items.push(["城A 方位","东北"]);
+    worldData[0].conflict = false;
+    renderAllSections();
+  }
+  toast(action === "keep" ? "已保留新值" : "已抛弃新值", "ok");
+}
+
+/* ============ 标签页 ============ */
+document.querySelectorAll(".seg[role=tablist] button").forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll(".seg[role=tablist] button").forEach(x => x.classList.remove("active"));
+    b.classList.add("active");
+    document.getElementById("tab-char").style.display = b.dataset.tab === "char" ? "" : "none";
+    document.getElementById("tab-world").style.display = b.dataset.tab === "world" ? "" : "none";
+  };
+});
+
+/* ============ 面板折叠 ============ */
+function togglePanel() {
+  const p = document.getElementById("sidePanel");
+  const t = document.getElementById("collapseTab");
+  p.classList.toggle("collapsed");
+  t.classList.toggle("collapsed");
+  t.textContent = p.classList.contains("collapsed") ? "▶" : "◀";
+}
+function togglePanelMobile() {
+  document.getElementById("sidePanel").classList.toggle("mobile-open");
+}
+
+/* ============ 抽屉 ============ */
+function openDrawer(name) {
+  document.getElementById(name + "Scrim").classList.add("show");
+  document.getElementById("drawer-" + name).classList.add("show");
+}
+function closeDrawer(name) {
+  document.getElementById(name + "Scrim").classList.remove("show");
+  document.getElementById("drawer-" + name).classList.remove("show");
+}
+
+/* ============ 流式生成演示 ============ */
+const sampleReply = "雪莉没有立刻接话。她端起你刚落座时老板端来的那杯热酒，浅啜一口，耳尖不易察觉地动了动。\n\n「潮汐城最近不太平，」她压低声音，尾巴在身后缓缓摆了一下，「你听说城南那场火了吗？烧了三家铺子，却没人知道是谁点的。」";
+function simulateStream() {
+  if (streaming) return;
+  streaming = true;
+  const input = document.getElementById("composerInput");
+  const btn = document.getElementById("sendBtn");
+  btn.disabled = true;
+  const col = document.getElementById("storyCol");
+
+  // 把用户输入作为新的一段
+  const userText = input.value.trim();
+  if (userText) {
+    const uel = document.createElement("div");
+    uel.className = "beat";
+    uel.innerHTML = `<div class="beat-meta"><span class="line"></span><span class="tag">你</span><span class="line"></span></div>`;
+    const up = document.createElement("p");
+    up.style.color = "var(--teal)";
+    up.textContent = userText;
+    uel.appendChild(up);
+    col.appendChild(uel);
+  }
+
+  // 思考指示器
+  const ind = document.createElement("div");
+  ind.className = "streaming-indicator";
+  ind.innerHTML = `<span class="av"><img src="assets/portrait-secretary.png"></span><span class="dots"><span></span><span></span><span></span></span><span style="font-size:12.5px;color:var(--text-3)">GM 正在续写…</span>`;
+  col.appendChild(ind);
+
+  // 新建输出段
+  const beat = document.createElement("div");
+  beat.className = "beat";
+  beat.innerHTML = `<div class="beat-meta"><span class="line"></span><span class="tag">城门口 · 雨歇</span><span class="line"></span></div>`;
+  const p = document.createElement("p");
+  beat.appendChild(p);
+  col.appendChild(beat);
+  col.scrollTop = col.scrollHeight;
+  const flow = document.getElementById("storyFlow");
+
+  const plain = sampleReply.replace(/\n/g, "");
+  let i = 0;
+  const timer = setInterval(() => {
+    p.textContent = plain.slice(0, i++);
+    const caret = p.querySelector(".typing-caret");
+    if (!caret) {
+      const c = document.createElement("span");
+      c.className = "typing-caret";
+      p.appendChild(c);
+    }
+    flow.scrollTop = flow.scrollHeight;
+    if (i > plain.length) {
+      clearInterval(timer);
+      p.querySelector(".typing-caret")?.remove();
+      ind.remove();
+      streaming = false;
+      btn.disabled = false;
+      input.value = "";
+      autosize(input);
+    }
+  }, 18);
+}
+
+/* ============ 输入框自适应 ============ */
+function autosize(el) {
+  el.style.height = "auto";
+  el.style.height = Math.min(el.scrollHeight, 140) + "px";
+}
+
+/* ============ Toast ============ */
+let toastTimer;
+function toast(msg, type) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = "toast show " + (type || "");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove("show"), 2400);
+}
+
+/* ============ 初始化 ============ */
+renderAllSections();
+renderBeats(document.getElementById("storyCol"));
+</script>
+</body>
+</html>

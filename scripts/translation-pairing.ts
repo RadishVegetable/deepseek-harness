@@ -264,9 +264,10 @@ export function parseTranslationPairingCliArgs(argv: string[]): TranslationPairi
   if (listMode && (writeMode || allMode || cachedMode || anchors.length > 0)) {
     throw new Error('--list reports the whole corpus and takes no other flags or paths')
   }
-  if (allMode && !writeMode) throw new Error('--all only applies to --write')
+  if (allMode && !writeMode && !cachedMode) throw new Error('--all only applies to --write or --cached')
   if (cachedMode && writeMode) throw new Error('--cached is a read-only index check and cannot be combined with --write')
-  if (cachedMode && anchors.length === 0) throw new Error('--cached requires the staged pair paths to check')
+  if (cachedMode && allMode && anchors.length > 0) throw new Error('--cached --all takes no pair paths')
+  if (cachedMode && anchors.length === 0 && !allMode) throw new Error('--cached requires the staged pair paths to check, or --all')
   if (writeMode) {
     if (anchors.length > 0 && allMode) throw new Error('--write takes either pair paths or --all, not both')
     if (anchors.length === 0 && !allMode) {

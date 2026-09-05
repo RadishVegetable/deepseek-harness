@@ -107,10 +107,12 @@
     "scripts/client-bundle-purity.spec.ts"
   ],
   "references": [
+    { "path": "./packages/tavern/shared" },
     { "path": "./packages/tavern/compat" },
     { "path": "./packages/tavern/assets" },
     { "path": "./packages/tavern/host" },
     { "path": "./packages/tavern/context" },
+    { "path": "./packages/tavern/memory" },
     { "path": "./packages/tavern/state" },
     { "path": "./vendor/cosmokit" },
     { "path": "./vendor/schemastery" },

@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write .agents/notes/proposed/architecture/2026-08-24-dsh-tavern-architecture.md
-2026-08-24-dsh-tavern-architecture.md: 7949226c7329e07241a674ab55871c5b564f52e7
-2026-08-24-dsh-tavern-architecture.zh.md: baba52ed7e0a4be7265b4d6f6074f50af9b57af2
+2026-08-24-dsh-tavern-architecture.md: 63d2c348bf6c02f3fb36c19382b9c77a1288a664
+2026-08-24-dsh-tavern-architecture.zh.md: dc7935575609095baeec4acd70de1cb0574d30ba

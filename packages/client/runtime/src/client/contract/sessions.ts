@@ -35,6 +35,17 @@ export interface ISessions {
    */
   readonly searchResultLimit: number
   /**
+   * Create a new session without reusing a Workspace's blank session.
+   * @param opts - optional Workspace or cwd and the requested agent preset.
+   * @returns the created session id.
+   */
+  create(opts?: {
+    workspaceId?: import('@deepseek-ai/dsh-api-remotes/client').WorkspaceId
+    cwd?: string
+    sessionId?: SessionId
+    agentPreset?: string
+  }): Promise<SessionId>
+  /**
    * Select a session as current.
    * @param id - session id (must exist in the list; unknown ids fail loud).
    */

@@ -92,7 +92,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 }[T]
 ```
 
-来源：[`packages/core/session/src/types.ts:336`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:343`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:372`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:404`](../packages/core/session/src/types.ts)
+来源：[`packages/core/session/src/types.ts:338`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:345`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:374`](../packages/core/session/src/types.ts) · [`packages/core/session/src/types.ts:406`](../packages/core/session/src/types.ts)
 
 ## 事件
 
@@ -558,7 +558,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'request/context': RequestContext
 ```
 
-来源：[`packages/core/session/src/types.ts:309`](../packages/core/session/src/types.ts)
+来源：[`packages/core/session/src/types.ts:311`](../packages/core/session/src/types.ts)
 
 <a id="requestheader--log-only"></a>
 
@@ -572,7 +572,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'request/header': { header: EpochHeader; reason: RequestHeaderReason }
 ```
 
-来源：[`packages/core/session/src/types.ts:304`](../packages/core/session/src/types.ts)
+来源：[`packages/core/session/src/types.ts:306`](../packages/core/session/src/types.ts)
 
 ### `sandbox/*`
 
@@ -647,7 +647,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'session/end-seed': Record<string, never>
 ```
 
-来源：[`packages/core/session/src/types.ts:332`](../packages/core/session/src/types.ts)
+来源：[`packages/core/session/src/types.ts:334`](../packages/core/session/src/types.ts)
 
 <a id="sessiontitle--log-only"></a>
 
@@ -723,16 +723,38 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 ### `tavern/*`
 
+<a id="tavernassets-edited--log-only"></a>
+
+#### `tavern/assets-edited` — log-only
+
+```ts persistence-catalog
+/** Metadata for a Journey asset-selection edit. */
+'tavern/assets-edited': TavernAssetsEditedEvent
+```
+
+来源：[`packages/tavern/host/src/session.ts:74`](../packages/tavern/host/src/session.ts)
+
+<a id="tavernassets-normalized--log-only"></a>
+
+#### `tavern/assets-normalized` — log-only
+
+```ts persistence-catalog
+/** Audit metadata for the normalization pass that produced authored facts. */
+'tavern/assets-normalized': TavernAssetsNormalizedEvent
+```
+
+来源：[`packages/tavern/host/src/types.ts:458`](../packages/tavern/host/src/types.ts)
+
 <a id="tavernassets-selected--log-only"></a>
 
 #### `tavern/assets-selected` — log-only
 
 ```ts persistence-catalog
-/** The character and World Info baseline selected for later turns. */
+/** Asset references selected for later turns; source data is resolved by Host. */
 'tavern/assets-selected': TavernAssetsSelectedEvent
 ```
 
-来源：[`packages/tavern/host/src/session.ts:46`](../packages/tavern/host/src/session.ts)
+来源：[`packages/tavern/host/src/session.ts:72`](../packages/tavern/host/src/session.ts)
 
 <a id="taverncontext-activation--log-only"></a>
 
@@ -743,7 +765,40 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'tavern/context-activation': TavernContextActivationEvent
 ```
 
-来源：[`packages/tavern/host/src/session.ts:48`](../packages/tavern/host/src/session.ts)
+来源：[`packages/tavern/host/src/session.ts:76`](../packages/tavern/host/src/session.ts)
+
+<a id="tavernfact--log-only"></a>
+
+#### `tavern/fact` — log-only
+
+```ts persistence-catalog
+/** An accepted or rejected GM fact operation linked to its assistant reply. */
+'tavern/fact': TavernFactEvent
+```
+
+来源：[`packages/tavern/host/src/types.ts:454`](../packages/tavern/host/src/types.ts)
+
+<a id="tavernfact-search--log-only"></a>
+
+#### `tavern/fact-search` — log-only
+
+```ts persistence-catalog
+/** Durable fact-search result shown to the model. */
+'tavern/fact-search': TavernFactSearchEvent
+```
+
+来源：[`packages/tavern/host/src/types.ts:464`](../packages/tavern/host/src/types.ts)
+
+<a id="taverngm-response--log-only"></a>
+
+#### `tavern/gm-response` — log-only
+
+```ts persistence-catalog
+/** Parsed GM response retained for fact recovery after transcript projection. */
+'tavern/gm-response': TavernGmResponseEvent
+```
+
+来源：[`packages/tavern/host/src/types.ts:456`](../packages/tavern/host/src/types.ts)
 
 <a id="taverngreeting--log-only"></a>
 
@@ -754,18 +809,102 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'tavern/greeting': TavernGreetingEvent
 ```
 
-来源：[`packages/tavern/host/src/types.ts:50`](../packages/tavern/host/src/types.ts)
+来源：[`packages/tavern/host/src/types.ts:452`](../packages/tavern/host/src/types.ts)
 
-<a id="tavernmemory--log-only"></a>
+<a id="tavernmemory-capability--log-only"></a>
 
-#### `tavern/memory` — log-only
+#### `tavern/memory-capability` — log-only
 
 ```ts persistence-catalog
-/** A durable memory entry update used by the Tavern context projection. */
-'tavern/memory': import('./types.ts').TavernMemoryEvent
+/** Optional memory/compaction capability status. */
+'tavern/memory-capability': TavernMemoryCapabilityEvent
 ```
 
-来源：[`packages/tavern/host/src/session.ts:50`](../packages/tavern/host/src/session.ts)
+来源：[`packages/tavern/host/src/types.ts:462`](../packages/tavern/host/src/types.ts)
+
+<a id="tavernmemory-cleanup--log-only"></a>
+
+#### `tavern/memory-cleanup` — log-only
+
+```ts persistence-catalog
+/** Relation-only cleanup decisions returned by compaction. */
+'tavern/memory-cleanup': TavernMemoryCleanupEvent
+```
+
+来源：[`packages/tavern/host/src/types.ts:472`](../packages/tavern/host/src/types.ts)
+
+<a id="tavernmemory-context--log-only"></a>
+
+#### `tavern/memory-context` — log-only
+
+```ts persistence-catalog
+/** Durable model-visible memory injection snapshot. */
+'tavern/memory-context': {
+  readonly branch: string
+  readonly content: string
+  readonly staticText: string
+  readonly dynamicText: string
+  readonly factSeqs: readonly number[]
+  readonly fingerprint: string
+}
+```
+
+来源：[`packages/tavern/memory/src/types.ts:373`](../packages/tavern/memory/src/types.ts)
+
+<a id="tavernmemory-cursor--log-only"></a>
+
+#### `tavern/memory-cursor` — log-only
+
+```ts persistence-catalog
+/** Memory extraction cursor advancement or initialization. */
+'tavern/memory-cursor': TavernMemoryCursorEvent
+```
+
+来源：[`packages/tavern/host/src/types.ts:468`](../packages/tavern/host/src/types.ts)
+
+<a id="tavernmemory-extraction--log-only"></a>
+
+#### `tavern/memory-extraction` — log-only
+
+```ts persistence-catalog
+/** Durable lifecycle and cursor record for background memory extraction. */
+'tavern/memory-extraction': MemoryExtractionEvent
+```
+
+来源：[`packages/tavern/memory/src/types.ts:382`](../packages/tavern/memory/src/types.ts)
+
+<a id="tavernmemory-fork--log-only"></a>
+
+#### `tavern/memory-fork` — log-only
+
+```ts persistence-catalog
+/** Fork boundary used by the memory projection. */
+'tavern/memory-fork': TavernMemoryForkEvent
+```
+
+来源：[`packages/tavern/host/src/types.ts:470`](../packages/tavern/host/src/types.ts)
+
+<a id="tavernmemory-revert--log-only"></a>
+
+#### `tavern/memory-revert` — log-only
+
+```ts persistence-catalog
+/** Atomic tombstones for history-derived memory facts. */
+'tavern/memory-revert': TavernMemoryRevertEvent
+```
+
+来源：[`packages/tavern/host/src/types.ts:466`](../packages/tavern/host/src/types.ts)
+
+<a id="tavernsection-config--log-only"></a>
+
+#### `tavern/section-config` — log-only
+
+```ts persistence-catalog
+/** User-owned dynamic ledger section configuration. */
+'tavern/section-config': TavernSectionConfigEvent
+```
+
+来源：[`packages/tavern/host/src/types.ts:460`](../packages/tavern/host/src/types.ts)
 
 <a id="tavernstory-state--log-only"></a>
 
@@ -776,7 +915,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'tavern/story-state': TavernStoryStateEvent
 ```
 
-来源：[`packages/tavern/host/src/session.ts:52`](../packages/tavern/host/src/session.ts)
+来源：[`packages/tavern/host/src/session.ts:78`](../packages/tavern/host/src/session.ts)
 
 <a id="tavernswipe--log-only"></a>
 
@@ -787,7 +926,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 'tavern/swipe': TavernSwipeEvent
 ```
 
-来源：[`packages/tavern/host/src/types.ts:186`](../packages/tavern/host/src/types.ts)
+来源：[`packages/tavern/host/src/types.ts:718`](../packages/tavern/host/src/types.ts)
 
 ### `todo/*`
 
@@ -802,7 +941,7 @@ export type SessionEvent<T extends SessionEventType = SessionEventType> = {
 
 类型：[TodoItem](subsystems/session.md)
 
-来源：[`packages/core/session/src/types.ts:299`](../packages/core/session/src/types.ts)
+来源：[`packages/core/session/src/types.ts:301`](../packages/core/session/src/types.ts)
 
 ### `tool/*`
 

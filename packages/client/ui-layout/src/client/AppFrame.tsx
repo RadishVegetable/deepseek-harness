@@ -20,18 +20,12 @@ import css from './AppFrame.module.css'
 /** Full composed props: runtime share + child-slot render share + store share. */
 export type AppFrameProps =
   & PropsRuntime<'root'>
-  & PropsRenderSlots<'sidebar' | 'conversation' | 'tavern' | 'details' | 'shell.overlay'>
+  & PropsRenderSlots<'sidebar' | 'conversation' | 'details' | 'shell.overlay'>
   & PropsStore<ReturnType<typeof createLayoutStore>>
 
-const SURFACE_CHANGE_EVENT = 'dsh:surface-change'
-
-function isTavernSurface(): boolean {
-  return typeof document !== 'undefined' && document.documentElement.dataset.dshSurface === 'tavern'
-}
-
 /** Center column grid item (session-body building block). */
-function CenterColumn(props: { children?: ReactNode; tavern?: boolean }) {
-  return <div className={css.centerCol} data-tavern-surface={props.tavern || undefined}>{props.children}</div>
+function CenterColumn(props: { children?: ReactNode }) {
+  return <div className={css.centerCol}>{props.children}</div>
 }
 
 /** Details column grid item; width 0 keeps the subtree mounted (never unmount on close). */
@@ -97,12 +91,6 @@ export function AppFrame({
   renderSlot,
 }: AppFrameProps) {
   const panels = useStore(s => s)
-  const [tavernSurface, setTavernSurface] = useState(isTavernSurface)
-  useEffect(() => {
-    const update = () => { setTavernSurface(isTavernSurface()) }
-    window.addEventListener(SURFACE_CHANGE_EVENT, update)
-    return () => { window.removeEventListener(SURFACE_CHANGE_EVENT, update) }
-  }, [])
   const detailsSession = useSessions((s) => {
     const current = s.current
     return current !== undefined && s.byId[current]?.blank === false ? current : undefined
@@ -151,9 +139,7 @@ export function AppFrame({
   const sidebarPreference = sidebarCollapsed
     ? 0
     : panels.sidebar === 0 ? SIDEBAR_DEFAULT : panels.sidebar
-  const cols = tavernSurface
-    ? { sidebar: 0, details: 0 }
-    : computeColumns(viewport, sidebarPreference, detailsSession === undefined ? 0 : panels.details)
+  const cols = computeColumns(viewport, sidebarPreference, detailsSession === undefined ? 0 : panels.details)
   const colsRef = useRef(cols)
   colsRef.current = cols
 
@@ -180,9 +166,8 @@ export function AppFrame({
       ref={frameRef}
       className={css.frame}
       style={{ gridTemplateColumns: `${cols.sidebar}px minmax(0, 1fr) ${cols.details}px` }}
-      data-sidebar-collapsed={sidebarCollapsed || tavernSurface || undefined}
+      data-sidebar-collapsed={sidebarCollapsed || undefined}
       data-details-collapsed={cols.details === 0 || undefined}
-      data-surface={tavernSurface ? 'tavern' : 'default'}
       data-dragging={dragging || undefined}
     >
       <div className={css.sidebarCol}>
@@ -191,7 +176,7 @@ export function AppFrame({
             component sees its rendered state as owner params decided here
             (collapsed follows the resolved rail, so a derived auto-collapse
             renders the rail UI too). */}
-        {!tavernSurface && renderSlot('sidebar', {
+        {renderSlot('sidebar', {
           collapsed: sidebarCollapsed,
           width: cols.sidebar,
         })}
@@ -202,18 +187,17 @@ export function AppFrame({
             the shell's own pending rendering. The conversation
             is session-maybe; the strict details entry naturally renders
             empty while no session is current. */}
-        <CenterColumn tavern={tavernSurface}>
-          {tavernSurface && renderSlot('tavern', {})}
+        <CenterColumn>
           {renderSlot('conversation', {})}
         </CenterColumn>
-        {!tavernSurface && <DetailsColumn>{renderSlot('details', {})}</DetailsColumn>}
+        <DetailsColumn>{renderSlot('details', {})}</DetailsColumn>
       </>
       <div className={css.overlayLayer} data-shell-overlay>
         {renderSlot('shell.overlay', {})}
       </div>
       {/* The collapsed rail is fixed-width: no resize handle while closed. */}
-      {!tavernSurface && !sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
-      {!tavernSurface && cols.details > 0 && <DragHandle side="details" left={viewport - cols.details} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}
+      {!sidebarCollapsed && <DragHandle side="sidebar" left={cols.sidebar} onStart={onSidebarStart} onDrag={onSidebarDrag} onEnd={onDragEnd} />}
+      {cols.details > 0 && <DragHandle side="details" left={viewport - cols.details} onStart={onDetailsStart} onDrag={onDetailsDrag} onEnd={onDragEnd} />}
     </div>
   )
 }

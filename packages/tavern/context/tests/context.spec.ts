@@ -3,6 +3,7 @@ import {
   compileContext,
   matchWorldInfo,
   type ContextSourceRecord,
+  type ContextLedger,
   type NormalizedWorldInfoEntry,
   type Observer,
 } from '../src/index.ts'
@@ -58,6 +59,10 @@ describe('compileContext', () => {
 
     expect(result.stablePrefix).toHaveLength(0)
     expect(result.dynamicSuffix.map(record => record.key)).toEqual(['public'])
+    expect(result.ledger.find(decision => decision.key === 'public')).toMatchObject({
+      outcome: 'included',
+      reason: 'included',
+    })
     expect(result.ledger.find(decision => decision.key === 'private-bob')).toMatchObject({
       outcome: 'excluded',
       reason: 'observer',
@@ -78,6 +83,32 @@ describe('compileContext', () => {
       outcome: 'excluded',
       reason: 'authority',
     })
+  })
+
+  it('exposes a serializable ledger with an outcome and reason for each decision', () => {
+    const result = compileContext({
+      observer: alice,
+      branch: 'main',
+      sources: [
+        source('included', 'visible'),
+        source('excluded', 'hidden', { authority: 'gm' }),
+      ],
+    })
+    const ledger: ContextLedger = result.ledger
+
+    expect(ledger).toEqual([
+      expect.objectContaining({ key: 'excluded', outcome: 'excluded', reason: 'authority' }),
+      expect.objectContaining({ key: 'included', outcome: 'included', reason: 'included' }),
+    ])
+    expect(JSON.parse(JSON.stringify(ledger))).toEqual(ledger)
+    expect(ledger.every(decision => decision.outcome !== undefined && decision.reason !== undefined)).toBe(true)
+  })
+
+  it('returns an empty serializable ledger when there are no context sources', () => {
+    const result = compileContext({ observer: alice, branch: 'main', sources: [] })
+
+    expect(result.ledger).toEqual([])
+    expect(JSON.stringify(result.ledger)).toBe('[]')
   })
 
   it('matches public world info only on whole words', () => {

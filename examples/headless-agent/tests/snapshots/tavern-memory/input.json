@@ -1,0 +1,8 @@
+{
+  "steps": [
+    {
+      "op": "prompt",
+      "text": "TAVERN_MEMORY_TARGET: continue the Journey after compaction. Confirm that the durable archive-door memory survived and finish with the exact words TAVERN MEMORY COMPACTION RECOVERED."
+    }
+  ]
+}

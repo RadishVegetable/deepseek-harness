@@ -2,5 +2,5 @@
 # side as of the last confirmed-consistent state. Both languages carry equal authority;
 # after editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/tavern-frontend-design.md
-tavern-frontend-design.md: 2ddbfdf01fa7200ff1a8b35234b4ab63d80e4c4f
-tavern-frontend-design.zh.md: c4a4ea9740be01fdc645775a7c37523ee2d00f21
+tavern-frontend-design.md: 15a65a947dad01a99f0570cd27ad554259723710
+tavern-frontend-design.zh.md: e40357f5b0b4c83dcff59093057ebed84f5d545e

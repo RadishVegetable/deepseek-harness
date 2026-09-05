@@ -7,6 +7,7 @@ import type {
   NormalizedWorldInfo,
   NormalizedWorldInfoEntry,
 } from './types.ts'
+import { isJsonValue, isRecord } from '@deepseek-ai/dsh-tavern-shared'
 
 const PNG_SIGNATURE = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10])
 const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
@@ -349,7 +350,7 @@ function requireObject(value: unknown, label: string): JsonObject {
 }
 
 function isObject(value: unknown): value is JsonObject {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
+  return isRecord(value) && Object.values(value).every(isJsonValue)
 }
 
 function has(object: JsonObject, key: string): boolean {

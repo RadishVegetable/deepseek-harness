@@ -71,6 +71,8 @@ export interface CharacterAsset {
   readonly systemPrompt: string
   /** Instructions placed after conversation history. */
   readonly postHistoryInstructions: string
+  /** Character-card-owned World Book, kept out of the standalone asset library. */
+  readonly characterBook: WorldInfoAsset | null
   /** Non-executable extension fields preserved by the adapter. */
   readonly extensions: JsonObject
 }

@@ -2246,6 +2246,36 @@ export interface Config {
 
 来源：[`packages/core/system-prompt/src/index.ts:186`](../packages/core/system-prompt/src/index.ts)
 
+<a id="deepseek-aidsh-tavern-host"></a>
+
+## `@deepseek-ai/dsh-tavern-host`
+
+需要：`storageDomain` · `sessionPersistence`
+
+```ts config-catalog
+/** Optional Host configuration for the Journey memory runtime. */
+export interface TavernAssetConfig {
+  /** Tavern Journey memory policy. */
+  readonly memory?: MemoryConfigInput
+  /** Optional route for model-assisted canonical asset cleaning. */
+  readonly cleaner?: {
+    /** Whether model-assisted canonical asset cleaning is enabled. */
+    readonly enabled?: boolean
+    /** Provider/model route for model-assisted canonical asset cleaning. */
+    readonly route?: string
+  }
+  /** Whether the host should mount its native `ctx.compaction` provider. */
+  readonly compaction?: {
+    /** Whether to mount the Host-native compaction provider. */
+    readonly enabled?: boolean
+  }
+}
+```
+
+依赖：[`MemoryConfigInput`](../packages/tavern/memory/src/index.ts)
+
+来源：[`packages/tavern/host/src/index.ts:105`](../packages/tavern/host/src/index.ts)
+
 <a id="deepseek-aidsh-terminal-bash"></a>
 
 ## `@deepseek-ai/dsh-terminal-bash`
@@ -3057,6 +3087,7 @@ export interface Config {
 - `@deepseek-ai/dsh-client-ui-skill`（[`packages/client/ui-skill/src/index.ts`](../packages/client/ui-skill/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-subagent`（[`packages/client/ui-subagent/src/index.ts`](../packages/client/ui-subagent/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-tavern`（[`packages/client/ui-tavern/src/index.ts`](../packages/client/ui-tavern/src/index.ts)）
+- `@deepseek-ai/dsh-client-ui-tavern-app`（[`packages/client/ui-tavern-app/src/index.ts`](../packages/client/ui-tavern-app/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-theme`（[`packages/client/ui-theme/src/index.ts`](../packages/client/ui-theme/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-tool`（[`packages/client/ui-tool/src/index.ts`](../packages/client/ui-tool/src/index.ts)）
 - `@deepseek-ai/dsh-client-ui-trajectory`（[`packages/client/ui-trajectory/src/index.ts`](../packages/client/ui-trajectory/src/index.ts)）
@@ -3087,7 +3118,6 @@ export interface Config {
 - `@deepseek-ai/dsh-subagent`（[`packages/subagent/subagent/src/index.ts`](../packages/subagent/subagent/src/index.ts)）
 - `@deepseek-ai/dsh-subprocess-local`（[`packages/subprocess/subprocess-local/src/index.ts`](../packages/subprocess/subprocess-local/src/index.ts)）
 - `@deepseek-ai/dsh-tavern`（[`packages/bundle/tavern/src/index.ts`](../packages/bundle/tavern/src/index.ts)）
-- `@deepseek-ai/dsh-tavern-host` — 需要 `storageDomain`（[`packages/tavern/host/src/index.ts`](../packages/tavern/host/src/index.ts)）
 - `@deepseek-ai/dsh-terminal`（[`packages/terminal/terminal/src/index.ts`](../packages/terminal/terminal/src/index.ts)）
 - `@deepseek-ai/dsh-tool-ask-user` — 需要 `tools` · `userInteraction`（[`packages/interaction/tool-ask-user/src/index.ts`](../packages/interaction/tool-ask-user/src/index.ts)）
 - `@deepseek-ai/dsh-tool-call-timeout-policy` — 需要 `tools`（[`packages/guard/timeout-policy/src/index.ts`](../packages/guard/timeout-policy/src/index.ts)）
@@ -3152,6 +3182,8 @@ export interface Config {
 - `@deepseek-ai/dsh-tavern-assets`（[`packages/tavern/assets/src/index.ts`](../packages/tavern/assets/src/index.ts)）
 - `@deepseek-ai/dsh-tavern-compat`（[`packages/tavern/compat/src/index.ts`](../packages/tavern/compat/src/index.ts)）
 - `@deepseek-ai/dsh-tavern-context`（[`packages/tavern/context/src/index.ts`](../packages/tavern/context/src/index.ts)）
+- `@deepseek-ai/dsh-tavern-memory`（[`packages/tavern/memory/src/index.ts`](../packages/tavern/memory/src/index.ts)）
+- `@deepseek-ai/dsh-tavern-shared`（[`packages/tavern/shared/src/index.ts`](../packages/tavern/shared/src/index.ts)）
 - `@deepseek-ai/dsh-tavern-state`（[`packages/tavern/state/src/index.ts`](../packages/tavern/state/src/index.ts)）
 - `@deepseek-ai/dsh-timeout`（[`packages/util/timeout/src/index.ts`](../packages/util/timeout/src/index.ts)）
 - `@deepseek-ai/dsh-typert-generator`（[`packages/typert/generator/src/index.ts`](../packages/typert/generator/src/index.ts)）

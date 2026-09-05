@@ -2466,7 +2466,7 @@ class FaceAnalyzer {
       .find(([subpath]) => subpath === module.subpath)?.[1]
     if (target === undefined) return undefined
     const sourcePath = realPath(sourcePathForExport(registration.root, target))
-    const sourceFile = this.sourceFiles.get(sourcePath) as ts.SourceFile
+    const sourceFile = this.sourceFiles.get(sourcePath)
     // A pure type package may not be a root in this face's bounded program.
     // TypeScript has already resolved the imported symbol in that case; the
     // matching name is the only export fact available without loading the

@@ -189,7 +189,7 @@ function rawPosition(position: WorldInfoEntry['position']): string {
 
 function stringifyJson(value: JsonObject, options: JsonExportOptions | undefined): string {
   const json = JSON.stringify(value, undefined, options?.pretty === true ? 2 : undefined)
-  const result = json === undefined ? '' : json
+  const result = json
   return options?.trailingNewline === true ? `${result}\n` : result
 }
 

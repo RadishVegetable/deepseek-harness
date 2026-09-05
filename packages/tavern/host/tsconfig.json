@@ -33,7 +33,19 @@
       "path": "../../llm/llm"
     },
     {
+      "path": "../../compaction/compaction"
+    },
+    {
+      "path": "../../interaction/commands"
+    },
+    {
       "path": "../../core/session"
+    },
+    {
+      "path": "../../core/tools"
+    },
+    {
+      "path": "../../jobs/jobs"
     },
     {
       "path": "../../core/system-prompt"
@@ -49,6 +61,12 @@
     },
     {
       "path": "../state"
+    },
+    {
+      "path": "../memory"
+    },
+    {
+      "path": "../shared"
     }
   ]
 }

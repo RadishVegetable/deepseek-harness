@@ -85,6 +85,20 @@ export class AssetRegistry {
   }
 
   /**
+   * Remove one registered asset and return a detached snapshot for rollback.
+   *
+   * @param id - Asset identifier to remove.
+   * @returns The removed asset, or `undefined` when the identifier is absent.
+   */
+  remove(id: AssetId): TavernAsset | undefined {
+    const asset = this.assets.get(id)
+    if (asset === undefined) return undefined
+    const snapshot = cloneAsset(asset)
+    this.assets.delete(id)
+    return snapshot
+  }
+
+  /**
    * Return a registered character by ID.
    *
    * @param id - Character asset ID.
@@ -243,6 +257,7 @@ function cloneAsset(asset: TavernAsset): TavernAsset {
       alternateGreetings: [...asset.alternateGreetings],
       systemPrompt: asset.systemPrompt,
       postHistoryInstructions: asset.postHistoryInstructions,
+      characterBook: asset.characterBook === null ? null : cloneWorldInfoAsset(asset.characterBook),
     }
   }
   return {
@@ -252,9 +267,25 @@ function cloneAsset(asset: TavernAsset): TavernAsset {
     tokenBudget: asset.tokenBudget,
     recursiveScanning: asset.recursiveScanning,
     entries: asset.entries.map(entry => ({
-      ...entry,
+      id: entry.id,
       keys: [...entry.keys],
       secondaryKeys: [...entry.secondaryKeys],
+      ...(entry.selective === undefined ? {} : { selective: entry.selective }),
+      ...(entry.constant === undefined ? {} : { constant: entry.constant }),
+      ...(entry.useRegex === undefined ? {} : { useRegex: entry.useRegex }),
+      ...(entry.matchWholeWords === undefined ? {} : { matchWholeWords: entry.matchWholeWords }),
+      ...(entry.caseSensitive === undefined ? {} : { caseSensitive: entry.caseSensitive }),
+      ...(entry.useProbability === undefined ? {} : { useProbability: entry.useProbability }),
+      content: entry.content,
+      enabled: entry.enabled,
+      position: entry.position,
+      depth: entry.depth,
+      order: entry.order,
+      recursive: entry.recursive,
+      probability: entry.probability,
+      group: entry.group,
+      sticky: entry.sticky,
+      cooldown: entry.cooldown,
       extensions: cloneJsonValue(entry.extensions) as JsonObject,
     })),
   }

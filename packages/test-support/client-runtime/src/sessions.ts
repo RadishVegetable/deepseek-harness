@@ -6,7 +6,7 @@ import { createSnapshotStore } from '@deepseek-ai/dsh-client-runtime/client'
 import type {
   AgentContext, ConversationSnapshot, ISessions, ObservableSnapshot, ProjectionsFace, SessionFace, SessionId,
   SessionListState, SessionProvideDescriptor, SessionSearchResultItem, SessionSummary, SnapshotStore,
-  SubagentAddress,
+  SubagentAddress, WorkspaceId,
 } from '@deepseek-ai/dsh-client-runtime/client'
 // The double reports the wire schema's own search bound, like the production
 // service — a transport-varying limit would be a fiction no client can see.
@@ -179,12 +179,13 @@ export class TestSessions implements ISessions {
    */
   readonly currentProvideInfo: HostObservable<SessionMaybeProvideInfo>
   private readonly records = new Map<SessionId, SessionRecord>()
+  private nextCreatedSessionSequence = 1
   /** The production provide channel (roster, materialization rules, current projection) — no test-side mirror. */
   private readonly channel: SessionProvideChannel
 
   /** Calls observed on the service-level face, newest last. */
   readonly calls: {
-    method: 'open' | 'openSubagent' | 'setSubagentCatalogOpen' | 'refreshSubagents'
+    method: 'create' | 'open' | 'openSubagent' | 'setSubagentCatalogOpen' | 'refreshSubagents'
       | 'clear' | 'search' | 'fork'
     args: unknown[]
   }[] = []
@@ -429,6 +430,30 @@ export class TestSessions implements ISessions {
     return address?.childSessionId === id ? address : undefined
   }
 
+  /**
+   * Create a blank fixture session and select it, mirroring the public
+   * sessions face without requiring a transport-backed host.
+   * @param opts - optional working directory, caller-owned id, and agent preset.
+   * @returns the new session id.
+   */
+  async create(opts: {
+    workspaceId?: WorkspaceId
+    cwd?: string
+    sessionId?: SessionId
+    agentPreset?: string
+  } = {}): Promise<SessionId> {
+    const id = opts.sessionId ?? this.allocateCreatedSessionId()
+    this.calls.push({ method: 'create', args: [opts] })
+    await this.add({
+      id,
+      summary: {
+        ...(opts.cwd === undefined ? {} : { cwd: opts.cwd }),
+        ...(opts.agentPreset === undefined ? {} : { agentPreset: opts.agentPreset }),
+      },
+    })
+    return id
+  }
+
   /** Record catalog consumption; fixture callers drive snapshots explicitly. */
   setSubagentCatalogOpen(parentSessionId: SessionId, open: boolean): void {
     this.calls.push({ method: 'setSubagentCatalogOpen', args: [parentSessionId, open] })
@@ -516,6 +541,12 @@ export class TestSessions implements ISessions {
      * always resolves; kept so a future caller cannot mint a ctx-less binding. */
     if (ctx === undefined) throw new Error(`test session "${id}" resolved no scope`)
     return { sessionId: id, session: record.session, ctx }
+  }
+
+  private allocateCreatedSessionId(): SessionId {
+    let id = `test-created-${this.nextCreatedSessionSequence++}` as SessionId
+    while (this.records.has(id)) id = `test-created-${this.nextCreatedSessionSequence++}` as SessionId
+    return id
   }
 
   private require(id: string): SessionRecord {

@@ -132,20 +132,11 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup()
-  delete document.documentElement.dataset.dshSurface
   vi.useRealTimers()
   vi.unstubAllGlobals()
 })
 
 describe('AppFrame', () => {
-  it('uses the explicit Tavern surface marker without hiding ordinary Web layouts', () => {
-    document.documentElement.dataset.dshSurface = 'tavern'
-    const { frame, slotCalls } = mountFrame()
-    expect(frame.dataset.surface).toBe('tavern')
-    expect(frame.style.gridTemplateColumns).toBe('0px minmax(0, 1fr) 0px')
-    expect(slotCalls.map(call => call.key)).toEqual(['tavern', 'conversation', 'shell.overlay'])
-  })
-
   it('renders three tracks from store state', () => {
     const { frame } = mountFrame()
     expect(tracks(frame)).toEqual([280, 0])

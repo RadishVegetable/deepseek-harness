@@ -7,7 +7,9 @@
  * @module run-tavern
  */
 
-export {}
+import { applyTavernOpenCodeEnvironment, loadTavernOpenCodeConfig } from './opencode-tavern-config.ts'
+
+applyTavernOpenCodeEnvironment(loadTavernOpenCodeConfig())
 
 const forwarded = process.argv.slice(2)
 if (forwarded[0] === '--') forwarded.shift()
@@ -18,6 +20,8 @@ process.argv.splice(
   'web',
   '--patch',
   'packages/bundle/tavern/cordis.patch.yml',
+  '--patch',
+  'packages/bundle/tavern/opencode.cordis.patch.yml',
   ...forwarded,
 )
 

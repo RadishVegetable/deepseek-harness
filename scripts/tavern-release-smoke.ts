@@ -186,10 +186,13 @@ async function respondToMockRequest(
 
 function isCharacterModelRequest(value: unknown): boolean {
   if (!isRecord(value) || !isUnknownArray(value.messages)) return false
+  // The first prompt is the only content-generation request in this smoke;
+  // the title plugin may issue a second, unrelated completion immediately
+  // afterward. Identify the former by excluding the title prompt rather than
+  // depending on a particular imported card's name or description prefix.
   return value.messages.some((message) => {
     if (!isRecord(message) || message.role !== 'system' || typeof message.content !== 'string') return false
-    return message.content.includes('Release Macro Card')
-      || (fixtureMode && message.content.includes('You are roleplaying as '))
+    return !message.content.includes('Create a concise title for an AI coding-assistant session.')
   })
 }
 
@@ -337,7 +340,14 @@ async function waitForModelRequest(requests: readonly unknown[], afterIndex: num
     if (isRecord(request)) return request
     await new Promise<void>(resolveWait => setTimeout(resolveWait, 100))
   }
-  throw new Error(`Tavern release smoke: no Tavern model request arrived within 30s; captured ${String(requests.length)} request(s)`)
+  const summaries = requests.slice(afterIndex).map((request) => {
+    if (!isRecord(request) || !isUnknownArray(request.messages)) return typeof request
+    return request.messages.map((message) => {
+      if (!isRecord(message)) return typeof message
+      return `${String(message.role)}:${typeof message.content === 'string' ? message.content.slice(0, 160) : '[non-text]'}`
+    }).join(' | ')
+  })
+  throw new Error(`Tavern release smoke: no Tavern model request arrived within 30s; captured ${String(requests.length)} request(s): ${summaries.join(' || ')}`)
 }
 
 async function waitForSwipeCandidate(
@@ -615,7 +625,7 @@ async function main(): Promise<void> {
     const restoredSelection = await callRemote<{ readonly selection: { readonly characterId: string | null } } | null>(
       web.baseUrl,
       'tavernAssets/inspectSession',
-      { agentId: sessionId },
+      { sessionId },
     )
     if (restoredSelection?.selection.characterId !== characterId) {
       throw new Error(`Tavern release smoke: selected Character Card was not restored: ${JSON.stringify(restoredSelection)}`)

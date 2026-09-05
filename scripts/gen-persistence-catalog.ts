@@ -425,14 +425,16 @@ interface GeneratedArtifact {
   readonly content: string
 }
 
-/** CLI entry: default writes the artifacts, `--check` fails if a committed copy
- * is stale. Guarded behind an entry-point check so importing this module for
- * tests neither regenerates the committed files nor calls process.exit. */
+/** CLI entry: default writes both artifacts, `--docs-only` limits the operation
+ * to the documentation artifact, and `--check` fails if a selected copy is
+ * stale. Guarded behind an entry-point check so importing this module for tests
+ * neither regenerates the committed files nor calls process.exit. */
 function main(): void {
   const events = annotateSurface(collectLogEvents(), collectSurfaceEventTypes())
+  const docsOnly = process.argv.includes('--docs-only')
   const artifacts: GeneratedArtifact[] = [
     { out: OUT, content: render(events, collectEventEnvelopeTypes()) },
-    { out: OUT_RUNTIME_TYPES, content: renderKnownEventTypes(events) },
+    ...(docsOnly ? [] : [{ out: OUT_RUNTIME_TYPES, content: renderKnownEventTypes(events) }]),
   ]
   if (process.argv.includes('--check')) {
     const stale = artifacts.filter((artifact) => {

@@ -12,6 +12,32 @@ import type {
 } from './types.ts'
 
 /**
+ * Remove repeated World Books while preserving the first source's provenance.
+ *
+ * Character Cards may carry an embedded World Book that is also imported as a
+ * standalone asset. Repeated entry text must only produce one prompt entry;
+ * the baseline references still retain every selected asset.
+ *
+ * @param assets - Resolved World Books in display or prompt order.
+ * @returns World Books with semantically identical contents collapsed.
+ */
+export function deduplicateWorldInfoAssets(assets: readonly WorldInfoAsset[]): readonly WorldInfoAsset[] {
+  const seenEntries = new Set<string>()
+  const result: WorldInfoAsset[] = []
+  for (const asset of assets) {
+    const entries = asset.entries.filter((entry) => {
+      const fingerprint = worldInfoEntryFingerprint(entry.content)
+      if (seenEntries.has(fingerprint)) return false
+      seenEntries.add(fingerprint)
+      return true
+    })
+    if (entries.length === 0 && asset.entries.length > 0) continue
+    result.push(entries.length === asset.entries.length ? asset : { ...asset, entries })
+  }
+  return result
+}
+
+/**
  * Project resolved assets into stable prompt inputs without performing activation,
  * retrieval, token budgeting, or model-request assembly.
  *
@@ -41,9 +67,16 @@ export function projectPromptAssetBaseline(
     }
   }
 
+  const selectedWorldInfoAssets = [
+    ...(character?.characterBook === null || character?.characterBook === undefined ? [] : [character.characterBook]),
+    ...worldInfoAssets,
+  ]
   const references: PromptAssetReference[] = []
   if (character !== null) {
     references.push({ kind: 'character', assetId: character.id, version: { ...character.version } })
+    if (character.characterBook !== null) {
+      references.push({ kind: 'world-info', assetId: character.characterBook.id, version: { ...character.characterBook.version } })
+    }
   }
   references.push(...worldInfoAssets.map(asset => ({
     kind: 'world-info' as const,
@@ -58,8 +91,12 @@ export function projectPromptAssetBaseline(
     },
     references,
     characterSections: character === null ? [] : projectCharacterSections(character),
-    worldInfoEntries: worldInfoAssets.flatMap(projectWorldInfoEntries),
+    worldInfoEntries: deduplicateWorldInfoAssets(selectedWorldInfoAssets).flatMap(projectWorldInfoEntries),
   }
+}
+
+function worldInfoEntryFingerprint(content: string): string {
+  return content.replace(/\r\n?/g, '\n').trim()
 }
 
 /** Project non-empty character fields in the stable order used by the baseline. */

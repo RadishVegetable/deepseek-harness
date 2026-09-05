@@ -55,3 +55,24 @@
   color: var(--dsw-alias-label-danger);
   font-size: 11px;
 }
+
+.action {
+  color: var(--tavern-dim);
+}
+
+.action:hover,
+.action:focus-visible {
+  color: var(--tavern-gold-bright);
+  background: rgba(196, 138, 67, 0.1);
+}
+
+.input {
+  border-color: var(--tavern-line);
+  border-radius: 3px;
+  color: var(--tavern-bone);
+  background: var(--tavern-ink);
+}
+
+.error {
+  color: #d88c74;
+}

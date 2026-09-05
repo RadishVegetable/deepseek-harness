@@ -11,6 +11,7 @@ import type {} from '@deepseek-ai/dsh-tavern-host/client'
 import type { ChatNodeViewProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { memo } from 'react'
 import type { ReactElement } from 'react'
+import { portraitFor } from './artwork.ts'
 import css from './greeting.module.css'
 
 interface TavernGreetingChatData {
@@ -67,7 +68,9 @@ export const TavernGreetingNodeView = memo(function TavernGreetingNodeView({
 }: ChatNodeViewProps<'tavern-greeting'>): ReactElement {
   return (
     <div className={css.row} data-tavern-greeting="">
-      <div className={css.avatar} aria-hidden="true">{node.data.characterName.slice(0, 1).toUpperCase()}</div>
+      <div className={css.avatar} aria-hidden="true">
+        <img src={portraitFor(node.data.characterName)} alt="" />
+      </div>
       <div className={css.body}>
         <div className={css.name}>{node.data.characterName}</div>
         <div className={css.bubble}>{node.data.text}</div>

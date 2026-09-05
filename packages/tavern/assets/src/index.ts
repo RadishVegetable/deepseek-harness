@@ -4,7 +4,7 @@ export { AssetRegistryError } from './errors.ts'
 export type { AssetRegistryErrorCode } from './errors.ts'
 export { serializeCharacterAsset, serializeTavernAsset, serializeWorldInfoAsset } from './export.ts'
 export type { JsonExportOptions } from './export.ts'
-export { projectPromptAssetBaseline } from './prompt.ts'
+export { deduplicateWorldInfoAssets, projectPromptAssetBaseline } from './prompt.ts'
 export { AssetRegistry, createAssetId } from './registry.ts'
 export type {
   AssetId,

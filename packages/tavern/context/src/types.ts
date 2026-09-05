@@ -174,6 +174,9 @@ export interface ContextUsage {
   readonly tokens?: number
 }
 
+/** Selection outcome recorded for one context compilation decision. */
+export type ContextDecisionOutcome = 'included' | 'excluded'
+
 /** One replayable compiler decision with its stable reason and attempted usage. */
 export interface ContextDecision {
   /** Deterministic source key. */
@@ -181,7 +184,7 @@ export interface ContextDecision {
   /** Whether the record came from direct input or World Info. */
   readonly origin: 'source' | 'world-info'
   /** Selection outcome. */
-  readonly outcome: 'included' | 'excluded'
+  readonly outcome: ContextDecisionOutcome
   /** Why the source was selected or rejected. */
   readonly reason: ContextDecisionReason
   /** Matching details for an activated World Info candidate. */
@@ -196,6 +199,9 @@ export interface ContextDecision {
   readonly order: number
 }
 
+/** JSON-serializable decision entries exposed to context inspection consumers. */
+export type ContextLedger = readonly ContextDecision[]
+
 /** Pure compiler output split into stable and changing context records. */
 export interface CompiledContext<T = unknown> {
   /** Selected stable records, ordered as the reusable prompt prefix. */
@@ -203,7 +209,7 @@ export interface CompiledContext<T = unknown> {
   /** Selected dynamic records, ordered after the stable prefix. */
   readonly dynamicSuffix: readonly ContextSourceRecord<T>[]
   /** Complete filtering, matching, deduplication, and budget ledger. */
-  readonly ledger: readonly ContextDecision[]
+  readonly ledger: ContextLedger
   /** Aggregate usage of selected source text. */
   readonly usage: ContextUsage
 }

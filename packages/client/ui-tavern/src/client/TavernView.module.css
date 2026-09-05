@@ -1,29 +1,16 @@
-.root {
-  position: relative;
-  flex: 1 1 auto;
-  box-sizing: border-box;
-  height: 100%;
-  min-height: 0;
-  overflow: auto;
-  color: var(--dsw-alias-label-primary);
-  background: var(--dsw-alias-bg-layer-1);
-}
+/* The single .root definition lives in the tavern visual-system layer below
+   (it merged the two earlier surface blocks and the scroll-body overrides). */
 
 /* Tavern supplies its own empty-state explanation; keep the shared composer
    bar while removing the generic Harness hero around it. */
-:global([data-dsh-surface='tavern']) [data-composer-seat] [class*='composerHero'] {
+:global(.tavernLegacyRoot) [data-composer-seat] [class*='composerHero'] {
   height: auto;
   padding-bottom: 0;
 }
 
-:global([data-dsh-surface='tavern']) [data-composer-seat] [class*='composerHero'] > svg,
-:global([data-dsh-surface='tavern']) [data-composer-seat] [class*='composerHero'] > div:first-of-type {
+:global(.tavernLegacyRoot) [data-composer-seat] [class*='composerHero'] > svg,
+:global(.tavernLegacyRoot) [data-composer-seat] [class*='composerHero'] > div:first-of-type {
   display: none;
-}
-
-:global([data-conversation-scroll]) .root {
-  min-height: 0;
-  overflow: auto;
 }
 
 .workbench {
@@ -780,6 +767,18 @@
   padding: 16px 20px 28px;
 }
 
+.mobileDetails .journeyAside {
+  display: block;
+  padding: 0;
+  border-left: 0;
+  background: transparent;
+  overflow: visible;
+}
+
+.mobileDetails .asideHeading {
+  display: none;
+}
+
 .drawerBody > .section {
   padding: 0;
   border: 0;
@@ -893,6 +892,169 @@
   border: 1px solid var(--dsw-alias-border-l2);
   border-radius: 6px;
   background: var(--dsw-alias-bg-layer-2);
+}
+
+.inspectorPanelWide {
+  grid-column: 1 / -1;
+}
+
+.inspectorHeading {
+  margin: 0 0 10px;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.inspectorFacts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.inspectorFact {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.inspectorFact dt {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+}
+
+.inspectorFact dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--dsw-alias-label-primary);
+  font-family: var(--dsw-alias-font-family-mono, monospace);
+  font-size: 12px;
+}
+
+.inspectorOutput {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.inspectorOutput p {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.inspectorResult {
+  padding: 8px 10px;
+  border-left: 2px solid var(--dsw-static-amber-600);
+  background: var(--dsw-alias-bg-base);
+}
+
+.inspectorError {
+  margin-top: 12px;
+  padding: 8px 10px;
+  border-left: 2px solid var(--dsw-alias-state-error-primary);
+  background: var(--dsw-alias-bg-base);
+}
+
+.inspectorError strong {
+  color: var(--dsw-alias-state-error-primary);
+  font-size: 12px;
+}
+
+.inspectorError p {
+  margin: 4px 0 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.auditPanel {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--dsw-alias-border-l2);
+}
+
+.auditPanel > summary {
+  color: var(--dsw-alias-label-primary);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.auditList {
+  display: grid;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.auditRow {
+  display: grid;
+  gap: 6px;
+  padding: 9px 10px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-left: 3px solid var(--dsw-alias-state-error-primary);
+  background: var(--dsw-alias-bg-base);
+}
+
+.auditRow[data-accepted='true'] {
+  border-left-color: var(--dsw-alias-state-success-primary);
+}
+
+.auditRowHeader,
+.auditMeta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 12px;
+}
+
+.auditRowHeader strong {
+  color: var(--dsw-alias-state-error-label);
+  font-size: 12px;
+}
+
+.auditRow[data-accepted='true'] .auditRowHeader strong {
+  color: var(--dsw-alias-state-success-label);
+}
+
+.auditRowHeader span,
+.auditMeta,
+.auditId,
+.auditLabel {
+  color: var(--dsw-alias-label-tertiary);
+  font-size: 11px;
+}
+
+.auditMeta {
+  justify-content: flex-start;
+  font-variant-numeric: tabular-nums;
+}
+
+.auditId {
+  overflow-wrap: anywhere;
+}
+
+.auditRow p {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.auditLabel {
+  width: fit-content;
+  padding: 2px 6px;
+  border: 1px solid var(--dsw-alias-border-l2);
+  border-radius: 999px;
+}
+
+.auditRejection {
+  color: var(--dsw-alias-state-error-label) !important;
 }
 
 .editorPanel .panelHeader {
@@ -1226,6 +1388,43 @@
   }
 }
 
+.structuredFields {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.structuredField {
+  display: grid;
+  grid-template-columns: minmax(88px, 0.28fr) minmax(0, 1fr);
+  gap: 12px;
+  padding: 9px 0;
+  border-top: 1px solid var(--tavern-line-soft);
+}
+
+.structuredField strong {
+  color: var(--tavern-gold);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.structuredField p {
+  margin: 0;
+  color: var(--tavern-parchment);
+  white-space: pre-wrap;
+}
+
+.detailFacts {
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid var(--tavern-line);
+}
+
+.detailFacts .memoryList {
+  margin-top: 10px;
+}
+
 @media (max-width: 420px) {
   .stageMeta {
     display: none;
@@ -1239,4 +1438,3420 @@
   .applyButton {
     flex: 1;
   }
+}
+
+/* Character-first surface. The older editor primitives above remain available
+   inside the tools drawer; the primary surface below is intentionally quiet,
+   spacious, and oriented around entering a story. */
+.entrance {
+  box-sizing: border-box;
+  width: min(1120px, 100%);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 48px 40px 36px;
+}
+
+.entranceHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 28px;
+  padding-bottom: 34px;
+  border-bottom: 1px solid var(--tavern-rule);
+}
+
+.eyebrow {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--tavern-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.entranceHeading h1 {
+  max-width: 640px;
+  margin: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 34px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.14;
+}
+
+.entranceHeading p {
+  max-width: 610px;
+  margin: 12px 0 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.entranceActions,
+.entranceFooterActions,
+.journeyHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.secondaryAction,
+.headerAction,
+.startButton,
+.detailLink,
+.bookRow,
+.identityButton,
+.companionCard,
+.asideWorld,
+.asideTools button,
+.characterChoice {
+  font: inherit;
+}
+
+.secondaryAction,
+.headerAction {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--tavern-rule);
+  border-radius: 5px;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.secondaryAction:hover,
+.headerAction:hover {
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.mobileDetailsAction {
+  display: none;
+}
+
+.setupSection {
+  padding-top: 28px;
+}
+
+.setupSectionHeading,
+.setupPanelHeading,
+.bookHeading,
+.asideSectionHeading,
+.asideHeading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.setupSectionHeading,
+.setupPanelHeading,
+.asideHeading {
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.setupSectionHeading > span:last-child,
+.setupPanelHeading > span:last-child,
+.asideSectionHeading > span:last-child {
+  color: var(--dsw-alias-label-caption);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+
+.characterGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 13px;
+}
+
+.characterChoice {
+  position: relative;
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  align-items: start;
+  gap: 13px;
+  min-width: 0;
+  min-height: 148px;
+  padding: 16px;
+  border: 1px solid var(--tavern-rule);
+  border-radius: 6px;
+  color: var(--dsw-alias-label-primary);
+  background: var(--dsw-alias-bg-layer-1);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.characterChoice:hover,
+.characterChoice:focus-visible {
+  border-color: var(--tavern-accent);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.characterChoice:active {
+  transform: translateY(1px);
+}
+
+.characterChoice[data-selected] {
+  border-color: var(--tavern-accent);
+  box-shadow: inset 3px 0 0 var(--tavern-accent);
+}
+
+.choiceAvatar,
+.largeAvatar,
+.journeyAvatar,
+.asideAvatar,
+.detailAvatar {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  color: var(--dsw-alias-label-primary-foreground);
+  background: var(--tavern-accent);
+  font-weight: 650;
+}
+
+.choiceAvatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  font-size: 19px;
+}
+
+.choiceBody {
+  display: grid;
+  align-content: start;
+  min-width: 0;
+  gap: 6px;
+}
+
+.choiceBody strong {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.choiceBody small {
+  display: -webkit-box;
+  overflow: hidden;
+  min-height: 36px;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.choiceMeta,
+.formatLabel {
+  color: var(--dsw-alias-label-caption);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.choiceCheck {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  color: var(--tavern-accent);
+}
+
+.emptyCollection {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  margin-top: 13px;
+  padding: 42px 20px;
+  border: 1px dashed var(--tavern-rule);
+  color: var(--dsw-alias-label-secondary);
+  text-align: center;
+}
+
+.emptyCollection p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.emptyIcon {
+  display: inline-flex;
+  color: var(--tavern-accent);
+}
+
+.setupDetails {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.setupPanel {
+  min-width: 0;
+  padding: 18px;
+  border-top: 2px solid var(--tavern-accent);
+  background: var(--dsw-alias-bg-layer-1);
+}
+
+.previewIdentity {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+  margin-top: 20px;
+}
+
+.largeAvatar {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  font-size: 22px;
+}
+
+.previewIdentity > div {
+  min-width: 0;
+}
+
+.previewIdentity h2 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 600;
+}
+
+.previewIdentity p {
+  margin: 7px 0 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.detailLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 14px;
+  padding: 0;
+  border: 0;
+  color: var(--tavern-accent);
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.attachedBook {
+  display: grid;
+  gap: 9px;
+  margin-top: 22px;
+  padding-top: 16px;
+  border-top: 1px solid var(--tavern-rule);
+}
+
+.bookHeading,
+.asideSectionHeading {
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+}
+
+.bookHeading span:first-child,
+.asideSectionHeading span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bookRow,
+.asideWorld {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  min-width: 0;
+  padding: 9px 0;
+  border: 0;
+  border-bottom: 1px solid var(--tavern-rule);
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.bookRow > span,
+.asideWorld > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.bookRow strong,
+.asideWorld strong {
+  overflow: hidden;
+  font-size: 12px;
+  font-weight: 550;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bookRow small,
+.asideWorld small {
+  overflow: hidden;
+  color: var(--dsw-alias-label-caption);
+  font-size: 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.bookRow:hover,
+.asideWorld:hover {
+  color: var(--tavern-accent);
+}
+
+.setupWorldList {
+  display: grid;
+  gap: 2px;
+  max-height: 173px;
+  margin-top: 13px;
+  overflow: auto;
+}
+
+.setupWorldItem {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 6px;
+  border-bottom: 1px solid var(--tavern-rule);
+  cursor: pointer;
+}
+
+.setupWorldItem[data-draft] {
+  color: var(--tavern-accent);
+}
+
+.setupWorldItem input {
+  accent-color: var(--tavern-accent);
+}
+
+.setupWorldItem > span {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.setupWorldItem strong {
+  overflow: hidden;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.setupWorldItem small {
+  color: var(--dsw-alias-label-caption);
+  font-size: 10px;
+}
+
+.setupWorldItem > svg {
+  color: var(--tavern-accent);
+}
+
+.setupNote {
+  margin: 13px 0 0;
+  color: var(--dsw-alias-label-caption);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+.entranceFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 28px;
+  padding-top: 18px;
+  border-top: 1px solid var(--tavern-rule);
+}
+
+.startButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--tavern-accent);
+  border-radius: 5px;
+  color: var(--dsw-alias-label-primary-foreground);
+  background: var(--tavern-accent);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.startButton:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+.startButton:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+.journey {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.journeyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  min-height: 68px;
+  padding: 10px 28px;
+  border-bottom: 1px solid var(--tavern-rule);
+  background: var(--dsw-alias-bg-base);
+}
+
+.identityButton {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.journeyAvatar,
+.asideAvatar {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  font-size: 14px;
+}
+
+.identityButton > span:last-child {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.identityButton small {
+  color: var(--tavern-accent);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.identityButton strong {
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.liveStatus {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--dsw-alias-label-caption);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.liveStatus .statusDot {
+  background: var(--tavern-accent);
+}
+
+.journeyHeader .iconButton {
+  border-color: transparent;
+}
+
+.journeyLayout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 270px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.storyColumn {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.storyColumn > .chatStage {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.journeyAside {
+  min-width: 0;
+  padding: 22px 16px;
+  border-left: 1px solid var(--tavern-rule);
+  background: var(--dsw-alias-bg-layer-1);
+  overflow: auto;
+}
+
+.asideHeading {
+  margin-bottom: 16px;
+}
+
+.companionCard {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr) 14px;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  min-width: 0;
+  padding: 10px 0 15px;
+  border: 0;
+  border-bottom: 1px solid var(--tavern-rule);
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.companionCard > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.companionCard strong {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.companionCard small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 11px;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.companionCard:hover {
+  color: var(--tavern-accent);
+}
+
+.asideSection {
+  display: grid;
+  gap: 6px;
+  padding: 19px 0;
+  border-bottom: 1px solid var(--tavern-rule);
+}
+
+.peopleList {
+  display: grid;
+  gap: 2px;
+  margin-top: 3px;
+}
+
+.personRow {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr) 14px;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  padding: 7px 0;
+  border: 0;
+  color: var(--dsw-alias-label-primary);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.personRow > span:nth-child(2) {
+  display: grid;
+  min-width: 0;
+  gap: 2px;
+}
+
+.personRow strong,
+.personRow small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.personRow strong {
+  font-size: 12px;
+  font-weight: 550;
+}
+
+.personRow small {
+  color: var(--dsw-alias-label-caption);
+  font-size: 10px;
+}
+
+.personRow:hover {
+  color: var(--tavern-accent);
+}
+
+.personAvatar {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--tavern-rule);
+  border-radius: 50%;
+  color: var(--tavern-accent);
+  font-size: 11px;
+  font-weight: 650;
+}
+
+.asideWorld {
+  padding: 8px 0;
+}
+
+.asideTools {
+  display: grid;
+  gap: 2px;
+  padding-top: 16px;
+}
+
+.asideTools button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 5px;
+  border: 0;
+  color: var(--dsw-alias-label-secondary);
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  text-align: left;
+}
+
+.asideTools button:hover {
+  color: var(--tavern-accent);
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.detailView {
+  display: grid;
+  gap: 20px;
+}
+
+.detailIdentity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid var(--tavern-rule);
+}
+
+.detailAvatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  font-size: 18px;
+}
+
+.detailIdentity h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.detailIdentity p,
+.detailIntro {
+  margin: 4px 0 0;
+  color: var(--dsw-alias-label-caption);
+  font-size: 11px;
+}
+
+.detailText {
+  display: grid;
+  gap: 7px;
+}
+
+.detailText h3 {
+  margin: 0;
+  color: var(--tavern-accent);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.detailText p,
+.worldDetailEntry p {
+  margin: 0;
+  color: var(--dsw-alias-label-secondary);
+  font-size: 13px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.detailBook {
+  display: grid;
+  gap: 7px;
+  padding-top: 18px;
+  border-top: 1px solid var(--tavern-rule);
+}
+
+.worldDetailList {
+  display: grid;
+  gap: 16px;
+}
+
+.worldDetailEntry {
+  display: grid;
+  gap: 8px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--tavern-rule);
+}
+
+.worldDetailEntry > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.worldDetailEntry strong {
+  min-width: 0;
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.worldDetailEntry span {
+  flex: 0 0 auto;
+  color: var(--tavern-accent);
+  font-size: 10px;
+}
+
+.drawerScrim {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  background: var(--dsw-alias-bg-mask-drop);
+  cursor: default;
+}
+
+.root button:focus-visible,
+.root select:focus-visible,
+.root input:focus-visible,
+.root textarea:focus-visible {
+  outline: 2px solid var(--tavern-accent);
+  outline-offset: 2px;
+}
+
+@media (max-width: 960px) {
+  .entrance {
+    padding: 34px 24px 28px;
+  }
+
+  .characterGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .journeyLayout {
+    grid-template-columns: minmax(0, 1fr) 230px;
+  }
+}
+
+@media (max-width: 720px) {
+  .entranceHeading,
+  .entranceFooter,
+  .journeyHeader {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .entranceHeading {
+    gap: 20px;
+  }
+
+  .entranceHeading h1 {
+    font-size: 29px;
+  }
+
+  .entranceActions,
+  .entranceFooterActions {
+    width: 100%;
+  }
+
+  .secondaryAction,
+  .startButton {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .setupDetails {
+    grid-template-columns: 1fr;
+  }
+
+  .journeyHeader {
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .journeyHeaderActions {
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .mobileDetailsAction {
+    display: inline-flex;
+  }
+
+  .journeyLayout {
+    display: block;
+  }
+
+  .journeyAside {
+    display: none;
+  }
+
+}
+
+@media (max-width: 520px) {
+  .entrance {
+    padding: 26px 16px 24px;
+  }
+
+  .characterGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .characterChoice {
+    min-height: 126px;
+  }
+
+  .setupPanel {
+    padding: 15px;
+  }
+
+  .liveStatus {
+    display: none;
+  }
+
+  .headerAction {
+    min-width: 0;
+    padding: 0 8px;
+  }
+
+  .headerAction > svg + * {
+    overflow: hidden;
+    max-width: 110px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+
+/* Tavern visual system. This layer intentionally overrides the shared
+   workbench defaults while keeping the editor and inspector components. */
+:global(.tavernLegacyRoot) [data-slot='conversation'],
+:global(.tavernLegacyRoot) [data-slot='conversation.session'],
+:global(.tavernLegacyRoot) [data-conversation-scroll],
+:global(.tavernLegacyRoot) [data-slot='conversation.view'] {
+  color: var(--tavern-bone);
+  background-color: var(--tavern-ink);
+}
+
+:global(.tavernLegacyRoot) [data-conversation-scroll] {
+  scrollbar-color: var(--tavern-line) transparent;
+}
+
+:global(.tavernLegacyRoot) [data-composer-seat] {
+  color: var(--tavern-bone);
+  background: var(--tavern-ink) !important;
+  background-image: none !important;
+}
+
+/* Single consolidated surface definition: merges the two earlier .root blocks
+   and the scroll-body overrides. The shared conversation scroll body owns
+   vertical scrolling, so the journey header and people ledger can remain
+   sticky. */
+.root {
+  position: relative;
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  height: auto;
+  min-height: 100%;
+  overflow: visible;
+  --tavern-accent: var(--tavern-gold);
+  --tavern-accent-bright: var(--tavern-gold-bright);
+  --tavern-accent-soft: var(--dsw-alias-state-warn-tertiary);
+  --tavern-rule: var(--tavern-line);
+  --tavern-rule-soft: var(--tavern-line-soft);
+  color: var(--tavern-bone);
+  background:
+    repeating-linear-gradient(93deg, rgba(255, 214, 145, 0.018) 0 1px, transparent 1px 11px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.1) 0 1px, transparent 1px 7px),
+    var(--tavern-ink);
+}
+
+.root::before {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 48% 36%, rgba(178, 111, 43, 0.08), transparent 42%);
+  content: '';
+}
+
+.root > * {
+  position: relative;
+  z-index: 1;
+}
+
+.alert {
+  min-height: 38px;
+  box-sizing: border-box;
+  padding: 9px 24px;
+  border-bottom: 1px solid rgba(171, 74, 52, 0.55);
+  color: #e2a18b;
+  background: rgba(105, 41, 31, 0.35);
+}
+
+.alertAction {
+  min-height: 26px;
+  border: 1px solid rgba(224, 173, 101, 0.4);
+  border-radius: 3px;
+  color: var(--tavern-gold-bright);
+  background: transparent;
+}
+
+.entrance {
+  width: min(1180px, 100%);
+  min-height: 100%;
+  box-sizing: border-box;
+  margin: 0 auto;
+  padding: 52px 48px 42px;
+}
+
+.entranceHeading {
+  align-items: flex-end;
+  gap: 32px;
+  padding-bottom: 31px;
+  border-bottom: 1px solid var(--tavern-rule);
+}
+
+.eyebrow,
+.kicker {
+  color: var(--tavern-gold);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.entranceHeading h1 {
+  max-width: 700px;
+  margin: 11px 0 0;
+  color: var(--tavern-bone);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(32px, 4vw, 48px);
+  font-weight: 400;
+  line-height: 1.12;
+  text-shadow: 0 2px 18px rgba(196, 138, 67, 0.12);
+}
+
+.entranceHeading p {
+  max-width: 620px;
+  margin: 15px 0 0;
+  color: var(--tavern-parchment);
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.entranceActions {
+  gap: 8px;
+}
+
+.secondaryAction,
+.headerAction {
+  min-height: 36px;
+  border: 1px solid var(--tavern-line);
+  border-radius: 3px;
+  color: var(--tavern-parchment);
+  background: rgba(53, 33, 23, 0.42);
+}
+
+.secondaryAction:hover,
+.secondaryAction:focus-visible,
+.headerAction:hover,
+.headerAction:focus-visible {
+  border-color: var(--tavern-gold);
+  color: var(--tavern-bone);
+  background: rgba(196, 138, 67, 0.12);
+}
+
+.setupSection {
+  padding-top: 31px;
+}
+
+.setupSectionHeading,
+.setupPanelHeading,
+.bookHeading,
+.asideSectionHeading,
+.asideHeading {
+  color: var(--tavern-parchment);
+}
+
+.setupSectionHeading,
+.setupPanelHeading,
+.asideHeading {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+}
+
+.setupSectionHeading::before,
+.asideSectionHeading::before {
+  color: var(--tavern-gold);
+}
+
+.setupSectionHeading > span:last-child,
+.setupPanelHeading > span:last-child,
+.asideSectionHeading > span:last-child {
+  color: var(--tavern-dim);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.characterGrid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 15px;
+}
+
+.characterChoice {
+  min-height: 158px;
+  padding: 17px;
+  border: 1px solid var(--tavern-line-soft);
+  border-radius: 4px;
+  color: var(--tavern-bone);
+  background:
+    linear-gradient(112deg, rgba(255, 208, 131, 0.035), transparent 42%),
+    var(--tavern-panel);
+  box-shadow: inset 0 1px rgba(255, 220, 158, 0.045), 0 7px 20px rgba(0, 0, 0, 0.12);
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease, box-shadow 160ms ease;
+}
+
+.characterChoice:hover,
+.characterChoice:focus-visible {
+  border-color: var(--tavern-gold);
+  background:
+    linear-gradient(112deg, rgba(255, 208, 131, 0.08), transparent 42%),
+    var(--tavern-panel-raised);
+  box-shadow: inset 3px 0 var(--tavern-gold), inset 0 1px rgba(255, 220, 158, 0.07), 0 9px 22px rgba(0, 0, 0, 0.2);
+}
+
+.characterChoice[data-selected] {
+  border-color: var(--tavern-gold);
+  background:
+    linear-gradient(112deg, rgba(196, 138, 67, 0.14), transparent 46%),
+    var(--tavern-panel-raised);
+  box-shadow: inset 3px 0 var(--tavern-gold), 0 0 0 1px rgba(196, 138, 67, 0.1), 0 9px 22px rgba(0, 0, 0, 0.2);
+}
+
+.choiceAvatar,
+.largeAvatar,
+.journeyAvatar,
+.asideAvatar,
+.detailAvatar {
+  border: 1px solid rgba(232, 215, 184, 0.27);
+  color: var(--tavern-bone);
+  background:
+    radial-gradient(circle at 32% 25%, rgba(234, 215, 184, 0.19), transparent 26%),
+    var(--tavern-red);
+  box-shadow: 0 2px 9px rgba(0, 0, 0, 0.25);
+}
+
+.choiceAvatar {
+  width: 55px;
+  height: 55px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 21px;
+}
+
+.choiceBody {
+  gap: 7px;
+}
+
+.choiceBody strong {
+  color: var(--tavern-bone);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 17px;
+  font-weight: 400;
+}
+
+.choiceBody small {
+  color: var(--tavern-parchment);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.choiceMeta,
+.formatLabel {
+  color: var(--tavern-dim);
+  font-size: 10px;
+}
+
+.choiceCheck {
+  color: var(--tavern-gold-bright);
+}
+
+.emptyCollection {
+  padding: 54px 24px;
+  border: 1px dashed var(--tavern-line);
+  color: var(--tavern-parchment);
+  background: rgba(43, 26, 20, 0.38);
+}
+
+.emptyIcon {
+  color: var(--tavern-gold);
+}
+
+.textButton,
+.alertAction {
+  color: var(--tavern-gold-bright);
+}
+
+.setupDetails {
+  gap: 14px;
+  margin-top: 31px;
+}
+
+.setupPanel {
+  padding: 20px;
+  border: 1px solid var(--tavern-line-soft);
+  border-top: 2px solid var(--tavern-gold);
+  background: rgba(43, 26, 20, 0.72);
+  box-shadow: inset 0 1px rgba(255, 219, 153, 0.04);
+}
+
+.previewIdentity {
+  margin-top: 22px;
+}
+
+.largeAvatar {
+  width: 66px;
+  height: 66px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 24px;
+}
+
+.previewIdentity h2 {
+  color: var(--tavern-bone);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 21px;
+  font-weight: 400;
+}
+
+.previewIdentity p,
+.setupNote,
+.muted {
+  color: var(--tavern-dim);
+}
+
+.detailLink {
+  color: var(--tavern-gold-bright);
+}
+
+.detailLink:hover,
+.bookRow:hover,
+.asideWorld:hover {
+  color: var(--tavern-gold-bright);
+}
+
+.attachedBook,
+.detailBook {
+  border-color: var(--tavern-line-soft);
+}
+
+.bookHeading,
+.asideSectionHeading {
+  color: var(--tavern-parchment);
+}
+
+.bookRow,
+.asideWorld {
+  border-color: var(--tavern-line-soft);
+  color: var(--tavern-bone);
+}
+
+.bookRow small,
+.asideWorld small,
+.setupWorldItem small {
+  color: var(--tavern-dim);
+}
+
+.setupWorldList {
+  max-height: 180px;
+  margin-top: 14px;
+}
+
+.setupWorldItem {
+  min-height: 45px;
+  border-color: var(--tavern-line-soft);
+}
+
+.setupWorldItem:hover {
+  background: rgba(196, 138, 67, 0.07);
+}
+
+.setupWorldItem input {
+  accent-color: var(--tavern-gold);
+}
+
+.setupWorldItem strong {
+  color: var(--tavern-bone);
+}
+
+.setupWorldItem > svg {
+  color: var(--tavern-gold-bright);
+}
+
+.entranceFooter {
+  margin-top: 31px;
+  padding-top: 19px;
+  border-color: var(--tavern-line);
+}
+
+.selectionState {
+  color: var(--tavern-dim);
+}
+
+.selectionState[data-dirty] {
+  color: var(--tavern-gold-bright);
+}
+
+.stateDot {
+  background: var(--tavern-green);
+  box-shadow: 0 0 8px rgba(135, 144, 100, 0.3);
+}
+
+.selectionState[data-dirty] .stateDot {
+  background: var(--tavern-gold);
+  box-shadow: 0 0 8px rgba(196, 138, 67, 0.35);
+}
+
+.ghostButton {
+  color: var(--tavern-parchment);
+}
+
+.ghostButton:hover {
+  color: var(--tavern-bone);
+  background: rgba(196, 138, 67, 0.1);
+}
+
+.startButton {
+  min-height: 42px;
+  border: 1px solid var(--tavern-gold);
+  border-radius: 3px;
+  color: #1a100c;
+  background: var(--tavern-gold);
+  box-shadow: 0 4px 14px rgba(196, 138, 67, 0.16);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.startButton:hover:not(:disabled) {
+  filter: none;
+  color: #110a07;
+  background: var(--tavern-gold-bright);
+  box-shadow: 0 5px 18px rgba(196, 138, 67, 0.27);
+}
+
+.journey {
+  height: auto;
+  min-height: 100%;
+  background: var(--tavern-ink);
+}
+
+.journeyHeader {
+  display: grid;
+  grid-template-columns: minmax(180px, auto) minmax(120px, 1fr) auto;
+  position: sticky;
+  top: 0;
+  z-index: 8;
+  min-height: 76px;
+  box-sizing: border-box;
+  padding: 12px 30px;
+  border-bottom: 1px solid var(--tavern-line);
+  background:
+    linear-gradient(90deg, rgba(196, 138, 67, 0.08), transparent 30%),
+    var(--tavern-walnut);
+  box-shadow: 0 3px 13px rgba(0, 0, 0, 0.18);
+}
+
+.identityButton {
+  gap: 11px;
+  color: var(--tavern-bone);
+}
+
+.identityButton:hover .journeyAvatar {
+  border-color: var(--tavern-gold-bright);
+}
+
+.journeyAvatar,
+.asideAvatar {
+  width: 41px;
+  height: 41px;
+}
+
+.identityButton small,
+.journeyWorld small {
+  color: var(--tavern-gold);
+}
+
+.identityButton strong {
+  color: var(--tavern-bone);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.journeyWorld {
+  display: flex;
+  align-items: center;
+  justify-self: center;
+  gap: 9px;
+  min-width: 0;
+  color: var(--tavern-gold);
+}
+
+.journeyWorld > span {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.journeyWorld strong {
+  overflow: hidden;
+  max-width: min(360px, 30vw);
+  color: var(--tavern-parchment);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 13px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.journeyHeaderActions {
+  justify-content: flex-end;
+  gap: 9px;
+}
+
+.liveStatus {
+  color: var(--tavern-dim);
+}
+
+.liveStatus .statusDot {
+  background: var(--tavern-green);
+}
+
+.journeyHeader .iconButton,
+.closeButton,
+.iconButton {
+  border-color: transparent;
+  border-radius: 3px;
+  color: var(--tavern-dim);
+}
+
+.journeyHeader .iconButton:hover,
+.closeButton:hover,
+.iconButton:hover,
+.iconButton:focus-visible,
+.closeButton:focus-visible {
+  border-color: var(--tavern-line);
+  color: var(--tavern-gold-bright);
+  background: rgba(196, 138, 67, 0.11);
+}
+
+.journeyLayout {
+  grid-template-columns: minmax(0, 1fr) 304px;
+  align-items: start;
+  min-height: 0;
+}
+
+.storyColumn {
+  background:
+    radial-gradient(ellipse at 50% 0%, rgba(154, 87, 34, 0.08), transparent 36%),
+    var(--tavern-ink);
+}
+
+.chatStage {
+  min-height: 100%;
+  color: var(--tavern-bone);
+}
+
+/* Shared conversation content is still the source of truth; these stable
+   flow attributes give its rows a Tavern reading rhythm. */
+:global(.tavernLegacyRoot) [data-chat-flow-kind='assistant-step'] {
+  padding: 12px 38px 4px;
+}
+
+:global(.tavernLegacyRoot) [data-chat-flow-kind='assistant-step'] [data-slot='conversation.chat.node'] {
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+:global(.tavernLegacyRoot) [data-chat-flow-kind='assistant-step'] [class*='markdown'] {
+  color: var(--tavern-bone);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 17px;
+  line-height: 2;
+}
+
+:global(.tavernLegacyRoot) [data-chat-flow-kind='assistant-step'] [class*='markdown'] p {
+  margin: 0 0 1em;
+}
+
+:global(.tavernLegacyRoot) [data-chat-flow-kind='assistant-step'] [class*='markdown'] strong {
+  color: var(--tavern-gold-bright);
+  font-weight: 600;
+}
+
+:global(.tavernLegacyRoot) [data-chat-flow-kind='assistant-step'] [class*='markdown'] code {
+  color: var(--tavern-gold-bright);
+  background: rgba(196, 138, 67, 0.1);
+}
+
+:global(.tavernLegacyRoot) [data-chat-flow-kind='user'] {
+  padding: 10px 38px 4px;
+}
+
+:global(.tavernLegacyRoot) [data-chat-flow-kind='user'] [data-time-hover-root] {
+  justify-content: flex-end;
+}
+
+:global(.tavernLegacyRoot) [data-chat-flow-kind='user'] [class*='bubble'] {
+  max-width: min(700px, 82%);
+  padding: 11px 15px;
+  border: 1px solid var(--tavern-line);
+  border-radius: 4px 4px 0 4px;
+  color: var(--tavern-parchment);
+  background: rgba(53, 33, 23, 0.68);
+  box-shadow: inset 0 1px rgba(255, 219, 153, 0.035);
+}
+
+:global(.tavernLegacyRoot) [data-chat-flow-kind='user'] [class*='_text_'] {
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+:global(.tavernLegacyRoot) [data-chat-flow-kind='context'],
+:global(.tavernLegacyRoot) [data-chat-flow-kind='model-retry'] {
+  padding: 2px 38px;
+  color: var(--tavern-dim);
+}
+
+:global(.tavernLegacyRoot) [data-chat-flow-kind='context'] [data-disclosure-row],
+:global(.tavernLegacyRoot) [data-chat-flow-kind='model-retry'] summary {
+  color: var(--tavern-dim);
+  background: transparent;
+}
+
+:global(.tavernLegacyRoot) [data-chat-flow-kind='assistant-step'] [data-variant='think'] {
+  border-color: var(--tavern-line-soft);
+  color: var(--tavern-dim);
+  opacity: 0.8;
+}
+
+:global(.tavernLegacyRoot) [data-chat-flow-kind='turn-tail'] {
+  padding: 0 38px 10px;
+}
+
+:global(.tavernLegacyRoot) [data-chat-flow-kind='turn-tail'] [data-time-hover-root] {
+  color: var(--tavern-dim);
+}
+
+:global(.tavernLegacyRoot) [data-chat-flow-kind] [class*='actions'] button,
+:global(.tavernLegacyRoot) [data-chat-flow-kind] [data-slot$='actions'] button {
+  color: var(--tavern-dim);
+}
+
+:global(.tavernLegacyRoot) [data-chat-flow-kind] [class*='actions'] button:hover,
+:global(.tavernLegacyRoot) [data-chat-flow-kind] [data-slot$='actions'] button:hover {
+  color: var(--tavern-gold-bright);
+  background: rgba(196, 138, 67, 0.1);
+}
+
+/* The composer is the writing desk at the front of the room. */
+:global(.tavernLegacyRoot) [data-composer-seat] [data-composer-card] {
+  border: 1px solid var(--tavern-line);
+  border-radius: 5px;
+  background:
+    linear-gradient(105deg, rgba(224, 173, 101, 0.05), transparent 35%),
+    var(--tavern-panel);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.34), inset 0 1px rgba(255, 219, 153, 0.06);
+}
+
+:global(.tavernLegacyRoot) [data-composer-seat] [data-input-scroll] {
+  color: var(--tavern-bone);
+}
+
+:global(.tavernLegacyRoot) [data-composer-seat] [data-input-backdrop] {
+  background: transparent;
+}
+
+:global(.tavernLegacyRoot) [data-composer-seat] textarea {
+  min-height: 76px;
+  color: var(--tavern-bone);
+  caret-color: var(--tavern-gold-bright);
+}
+
+:global(.tavernLegacyRoot) [data-composer-seat] textarea::placeholder {
+  color: var(--tavern-dim);
+  opacity: 1;
+}
+
+:global(.tavernLegacyRoot) [data-composer-seat] [class*='tools'],
+:global(.tavernLegacyRoot) [data-composer-seat] [class*='modes'] {
+  display: none;
+}
+
+:global(.tavernLegacyRoot) [data-composer-seat] [data-slot='conversation.input.right'] {
+  color: var(--tavern-parchment);
+}
+
+:global(.tavernLegacyRoot) [data-composer-seat] button[class*='trigger'] {
+  border-color: transparent;
+  color: var(--tavern-parchment);
+  background: transparent;
+}
+
+:global(.tavernLegacyRoot) [data-composer-seat] button[class*='trigger']:hover {
+  color: var(--tavern-gold-bright);
+  background: rgba(196, 138, 67, 0.1);
+}
+
+:global(.tavernLegacyRoot) [data-composer-seat] [class*='primary'] {
+  border: 1px solid var(--tavern-gold);
+  border-radius: 50%;
+  color: #1a100c;
+  background: var(--tavern-gold);
+}
+
+:global(.tavernLegacyRoot) [data-composer-seat] [class*='primary']:hover:not(:disabled) {
+  color: #110a07;
+  background: var(--tavern-gold-bright);
+}
+
+:global(.tavernLegacyRoot) [data-composer-seat] [data-slot='conversation.composer.dock'] {
+  color: var(--tavern-dim);
+}
+
+.journeyAside {
+  position: sticky;
+  top: 76px;
+  height: calc(100vh - 76px);
+  box-sizing: border-box;
+  padding: 24px 18px;
+  border-left: 1px solid var(--tavern-line);
+  color: var(--tavern-parchment);
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 214, 145, 0.018) 0 1px, transparent 1px 8px),
+    var(--tavern-walnut);
+  box-shadow: -5px 0 16px rgba(0, 0, 0, 0.13);
+}
+
+.asideHeading {
+  margin-bottom: 17px;
+  color: var(--tavern-gold-bright);
+}
+
+.companionCard {
+  padding: 11px 0 17px;
+  border-color: var(--tavern-line);
+  color: var(--tavern-bone);
+}
+
+.companionCard:hover {
+  color: var(--tavern-gold-bright);
+}
+
+.companionCard strong,
+.personRow strong,
+.asideWorld strong {
+  color: var(--tavern-bone);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+}
+
+.companionCard small,
+.personRow small {
+  color: var(--tavern-dim);
+}
+
+.asideSection {
+  padding: 20px 0;
+  border-color: var(--tavern-line-soft);
+}
+
+.peopleList {
+  gap: 1px;
+}
+
+.personRow {
+  min-height: 40px;
+  padding: 6px 4px;
+  border-radius: 3px;
+}
+
+.personRow:hover {
+  color: var(--tavern-gold-bright);
+  background: rgba(196, 138, 67, 0.08);
+}
+
+.personRow:hover strong {
+  color: var(--tavern-gold-bright);
+}
+
+.personAvatar {
+  border-color: var(--tavern-line);
+  color: var(--tavern-gold);
+  background: rgba(196, 138, 67, 0.08);
+}
+
+.asideTools {
+  gap: 3px;
+  padding-top: 17px;
+}
+
+.asideTools button {
+  min-height: 38px;
+  padding: 0 7px;
+  border-radius: 3px;
+  color: var(--tavern-parchment);
+}
+
+.asideTools button:hover {
+  color: var(--tavern-gold-bright);
+  background: rgba(196, 138, 67, 0.09);
+}
+
+.drawerLayer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+}
+
+.drawerScrim {
+  background: rgba(5, 3, 2, 0.74);
+}
+
+.drawer {
+  width: min(650px, 94vw);
+  border-left: 1px solid var(--tavern-line);
+  color: var(--tavern-bone);
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 214, 145, 0.015) 0 1px, transparent 1px 8px),
+    var(--tavern-panel);
+  box-shadow: -13px 0 32px rgba(0, 0, 0, 0.35);
+}
+
+.drawerHeader {
+  min-height: 78px;
+  padding: 16px 22px;
+  border-color: var(--tavern-line);
+  background: rgba(37, 23, 18, 0.78);
+}
+
+.drawerHeader h2 {
+  color: var(--tavern-bone);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.drawerTabs {
+  gap: 22px;
+  padding: 0 22px;
+  border-color: var(--tavern-line);
+}
+
+.drawerTab,
+.drawerTabActive {
+  min-height: 44px;
+  color: var(--tavern-dim);
+}
+
+.drawerTabActive {
+  color: var(--tavern-gold-bright);
+}
+
+.drawerTabActive::after {
+  background: var(--tavern-gold);
+}
+
+.drawerBody {
+  padding: 20px 22px 32px;
+}
+
+.detailView {
+  gap: 22px;
+}
+
+.detailIdentity {
+  border-color: var(--tavern-line);
+}
+
+.detailIdentity h3 {
+  color: var(--tavern-bone);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 21px;
+  font-weight: 400;
+}
+
+.detailIdentity p,
+.detailIntro {
+  color: var(--tavern-dim);
+}
+
+.detailText h3 {
+  color: var(--tavern-gold);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 12px;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+}
+
+.detailText p,
+.worldDetailEntry p {
+  color: var(--tavern-parchment);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 14px;
+  line-height: 1.75;
+}
+
+.worldDetailList {
+  gap: 18px;
+}
+
+.worldDetailEntry {
+  padding-bottom: 18px;
+  border-color: var(--tavern-line-soft);
+}
+
+.worldDetailEntry strong {
+  color: var(--tavern-bone);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.worldDetailEntry span {
+  color: var(--tavern-gold);
+}
+
+/* Tool panels use the same wood and parchment palette inside the drawer. */
+.section,
+.editorPanel,
+.inspectorPanel {
+  border-color: var(--tavern-line);
+  border-radius: 4px;
+  color: var(--tavern-bone);
+  background: rgba(37, 23, 18, 0.7);
+}
+
+.editorPanel,
+.inspectorPanel {
+  background: rgba(18, 12, 10, 0.32);
+}
+
+.inspectorHeading {
+  color: var(--tavern-bone);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+}
+
+.heading,
+.subheading {
+  color: var(--tavern-bone);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+}
+
+.note,
+.empty,
+.field,
+.requestMeta {
+  color: var(--tavern-dim);
+}
+
+.input,
+.select,
+.compactTextarea,
+.editorTextarea,
+.prompt {
+  border-color: var(--tavern-line);
+  border-radius: 3px;
+  color: var(--tavern-bone);
+  background: var(--tavern-ink);
+}
+
+.input::placeholder,
+.compactTextarea::placeholder {
+  color: var(--tavern-dim);
+}
+
+.input:focus,
+.select:focus,
+.compactTextarea:focus,
+.editorTextarea:focus {
+  border-color: var(--tavern-gold);
+}
+
+.subtleButton,
+.importButton,
+.inspectButton {
+  border-color: var(--tavern-line);
+  border-radius: 3px;
+  color: var(--tavern-parchment);
+  background: rgba(196, 138, 67, 0.06);
+}
+
+.subtleButton:hover,
+.importButton:hover,
+.inspectButton:hover {
+  border-color: var(--tavern-gold);
+  color: var(--tavern-bone);
+  background: rgba(196, 138, 67, 0.12);
+}
+
+.applyButton,
+.primaryButton {
+  border-radius: 3px;
+  color: #1a100c;
+  background: var(--tavern-gold);
+}
+
+.memoryRow,
+.sourceRow,
+.inspectorList details {
+  border-color: var(--tavern-line-soft);
+}
+
+.memoryCopy strong,
+.sourceRow strong,
+.inspectorPanel > summary,
+.inspectorList details > summary,
+.stat strong {
+  color: var(--tavern-bone);
+}
+
+.memoryCopy span,
+.sourceRow span,
+.memoryCopy p,
+.sourceRow p,
+.inspectorList details p,
+.stat,
+.baselineNote {
+  color: var(--tavern-parchment);
+}
+
+.prompt {
+  color: var(--tavern-parchment);
+}
+
+.inspectorFact dt {
+  color: var(--tavern-dim);
+}
+
+.inspectorFact dd {
+  color: var(--tavern-bone);
+}
+
+.inspectorOutput p,
+.inspectorError p {
+  color: var(--tavern-parchment);
+}
+
+.inspectorResult {
+  border-left-color: var(--tavern-gold);
+  background: rgba(196, 138, 67, 0.06);
+}
+
+.inspectorError {
+  border-left-color: var(--tavern-red, #c46a5c);
+  background: rgba(180, 66, 57, 0.08);
+}
+
+.inspectorError strong {
+  color: var(--tavern-red, #e18a7b);
+}
+
+.auditPanel {
+  border-color: var(--tavern-line-soft);
+}
+
+.auditPanel > summary,
+.auditRowHeader strong {
+  color: var(--tavern-bone);
+}
+
+.auditRow {
+  border-color: var(--tavern-line-soft);
+  border-left-color: var(--tavern-red, #c46a5c);
+  background: rgba(18, 12, 10, 0.32);
+}
+
+.auditRow[data-accepted='true'] {
+  border-left-color: var(--tavern-gold);
+}
+
+.auditRow[data-accepted='true'] .auditRowHeader strong {
+  color: var(--tavern-gold);
+}
+
+.auditRowHeader span,
+.auditMeta,
+.auditId,
+.auditLabel {
+  color: var(--tavern-dim);
+}
+
+.auditRow p {
+  color: var(--tavern-parchment);
+}
+
+.auditRejection {
+  color: var(--tavern-red, #e18a7b) !important;
+}
+
+.railSkeleton {
+  border-color: var(--tavern-line-soft);
+  background: var(--tavern-panel);
+}
+
+.skeletonAvatar,
+.skeletonLine,
+.skeletonShort,
+.worldSkeleton span {
+  background: var(--tavern-panel-raised);
+}
+
+.root button:focus-visible,
+.root select:focus-visible,
+.root input:focus-visible,
+.root textarea:focus-visible {
+  outline-color: var(--tavern-gold-bright);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .characterChoice,
+  .startButton {
+    transition: none;
+  }
+}
+
+@media (max-width: 960px) {
+  .entrance {
+    padding-right: 28px;
+    padding-left: 28px;
+  }
+
+  .journeyLayout {
+    grid-template-columns: minmax(0, 1fr) 384px;
+  }
+
+  .journeyHeader {
+    padding-right: 22px;
+    padding-left: 22px;
+  }
+}
+
+@media (max-width: 720px) {
+  .entrance {
+    padding: 34px 20px 30px;
+  }
+
+  .entranceHeading,
+  .entranceFooter,
+  .journeyHeader {
+    flex-direction: column;
+  }
+
+  .entranceHeading {
+    align-items: flex-start;
+    gap: 21px;
+  }
+
+  .entranceHeading h1 {
+    font-size: 34px;
+  }
+
+  .entranceActions,
+  .entranceFooterActions {
+    width: 100%;
+  }
+
+  .secondaryAction,
+  .startButton {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .setupDetails {
+    grid-template-columns: 1fr;
+  }
+
+  .journeyHeader {
+    display: flex;
+    align-items: stretch;
+    gap: 12px;
+    padding: 12px 16px;
+  }
+
+  .journeyWorld {
+    display: none;
+  }
+
+  .journeyHeaderActions {
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .mobileDetailsAction {
+    display: inline-flex;
+  }
+
+  .journeyLayout {
+    display: block;
+  }
+
+  .journeyAside {
+    position: static;
+    height: auto;
+    display: none;
+  }
+
+  :global(.tavernLegacyRoot) [data-chat-flow-kind='assistant-step'],
+  :global(.tavernLegacyRoot) [data-chat-flow-kind='user'] {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  :global(.tavernLegacyRoot) [data-chat-flow-kind='assistant-step'] [class*='markdown'] {
+    font-size: 17px;
+    line-height: 2;
+  }
+
+  :global(.tavernLegacyRoot) [data-chat-flow-kind='user'] [class*='bubble'] {
+    max-width: 90%;
+  }
+
+  :global(.tavernLegacyRoot) [data-composer-seat] [data-composer-card] {
+    border-right: 0;
+    border-left: 0;
+    border-radius: 0;
+  }
+
+  :global(.tavernLegacyRoot) [data-composer-seat] [data-slot='conversation.composer.dock'] {
+    display: none !important;
+  }
+
+  :global(.tavernLegacyRoot) [data-chat-flow-kind='turn-tail'] [class*='timeEnd'] {
+    display: none;
+  }
+
+  :global(.tavernLegacyRoot) [data-chat-flow-kind='turn-tail'] [class*='actions'] {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  :global(.tavernLegacyRoot) [data-chat-flow-kind='context'] [data-disclosure-row] {
+    max-width: 100%;
+    overflow: hidden;
+  }
+
+  :global(.tavernLegacyRoot) [data-chat-flow-kind='context'] [data-context-source] {
+    max-width: 43vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .drawer {
+    width: 100%;
+  }
+
+  .drawerHeader,
+  .drawerBody {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .drawerTabs {
+    gap: 16px;
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .editorGrid,
+  .inspectorGrid,
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 440px) {
+  .entrance {
+    padding: 28px 14px 25px;
+  }
+
+  .entranceHeading h1 {
+    font-size: 30px;
+  }
+
+  .entranceHeading p {
+    font-size: 13px;
+  }
+
+  .characterGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .characterChoice {
+    min-height: 132px;
+  }
+
+  .setupPanel {
+    padding: 16px;
+  }
+
+  .entranceFooter {
+    align-items: stretch;
+  }
+
+  .entranceFooterActions {
+    align-items: stretch;
+  }
+
+  .selectionState {
+    min-height: 28px;
+  }
+
+  .headerAction {
+    min-width: 0;
+    padding: 0 8px;
+  }
+
+  .headerAction > svg + * {
+    max-width: 110px;
+  }
+
+  .drawerBody {
+    padding-bottom: 28px;
+  }
+}
+
+/* Core story surface: real tavern artwork remains visible before any tools. */
+.entranceHero {
+  position: relative;
+  min-height: 214px;
+  margin: 28px 0 4px;
+  overflow: hidden;
+  border: 1px solid var(--tavern-line-soft);
+  background: var(--tavern-bg-void);
+  box-shadow: var(--tavern-shadow-2);
+}
+
+.entranceHero > img:first-child {
+  display: block;
+  width: 100%;
+  height: 214px;
+  object-fit: cover;
+  object-position: center 62%;
+}
+
+.entranceHeroVeil,
+.sceneVeil {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(18, 14, 10, 0.2), rgba(18, 14, 10, 0.58) 70%, rgba(18, 14, 10, 0.82));
+}
+
+.entranceHeroCopy,
+.sceneCopy {
+  position: absolute;
+  left: 24px;
+  bottom: 22px;
+  display: grid;
+  gap: 5px;
+  max-width: min(560px, calc(100% - 140px));
+  color: var(--tavern-parchment);
+}
+
+.entranceHeroCopy span,
+.sceneCopy span {
+  color: var(--tavern-copper-soft);
+  font-size: 11px;
+}
+
+.entranceHeroCopy strong,
+.sceneCopy strong {
+  color: var(--tavern-bone);
+  font-family: var(--tavern-font-story);
+  font-size: 26px;
+  font-weight: 400;
+}
+
+.entranceHeroCopy p,
+.sceneCopy p {
+  margin: 0;
+  color: var(--tavern-parchment);
+  font-family: var(--tavern-font-story);
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.entranceHeroPortrait {
+  position: absolute;
+  right: 32px;
+  bottom: 0;
+  width: 112px;
+  height: 158px;
+  object-fit: cover;
+  object-position: center top;
+  border: 1px solid rgba(227, 195, 145, 0.42);
+  border-bottom: 0;
+  box-shadow: var(--tavern-shadow-3);
+}
+
+.choiceAvatar,
+.largeAvatar,
+.journeyAvatar,
+.asideAvatar,
+.detailAvatar,
+.historyAvatar,
+.personAvatar {
+  overflow: hidden;
+}
+
+.choiceAvatar img,
+.largeAvatar img,
+.journeyAvatar img,
+.asideAvatar img,
+.detailAvatar img,
+.historyAvatar img,
+.personAvatar img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.identityPanel {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(210px, 0.7fr);
+  align-items: center;
+  gap: 28px;
+  margin-top: 14px;
+  padding: 20px;
+  border: 1px solid var(--tavern-line-soft);
+  border-left: 2px solid var(--tavern-teal);
+  background: rgba(34, 27, 20, 0.78);
+}
+
+.identityPanel h2 {
+  margin: 0;
+  color: var(--tavern-bone);
+  font-family: var(--tavern-font-story);
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.identityPanel p {
+  margin: 7px 0 0;
+  color: var(--tavern-dim);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.identityField {
+  display: grid;
+  gap: 7px;
+  color: var(--tavern-parchment);
+  font-size: 12px;
+}
+
+.identityField input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--tavern-line-strong);
+  border-radius: 4px;
+  outline: 0;
+  color: var(--tavern-bone);
+  background: var(--tavern-bg-void);
+}
+
+.identityField input:focus {
+  border-color: var(--tavern-copper);
+  box-shadow: 0 0 0 2px rgba(201, 155, 100, 0.18);
+}
+
+.sceneBanner {
+  position: relative;
+  height: 196px;
+  overflow: hidden;
+  border-bottom: 1px solid var(--tavern-line);
+  background: var(--tavern-bg-void);
+}
+
+.sceneBanner > img:first-child {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 58%;
+}
+
+.sceneCopy {
+  bottom: 18px;
+  left: 30px;
+  max-width: min(600px, calc(100% - 170px));
+}
+
+.sceneCopy strong {
+  font-size: 23px;
+}
+
+.sceneCopy p {
+  max-width: 560px;
+  font-size: 13px;
+}
+
+.portraitCard {
+  position: absolute;
+  right: 32px;
+  bottom: -1px;
+  display: grid;
+  grid-template-rows: 128px auto;
+  width: 96px;
+  min-height: 156px;
+  overflow: hidden;
+  border: 1px solid rgba(227, 195, 145, 0.45);
+  border-bottom: 0;
+  background: rgba(34, 27, 20, 0.88);
+  box-shadow: var(--tavern-shadow-3);
+}
+
+.portraitCard img {
+  display: block;
+  width: 100%;
+  height: 128px;
+  object-fit: cover;
+  object-position: center top;
+}
+
+.portraitCard strong {
+  align-self: center;
+  padding: 7px 8px;
+  overflow: hidden;
+  color: var(--tavern-bone);
+  font-family: var(--tavern-font-story);
+  font-size: 12px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.factLedger {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+  padding-top: 17px;
+  border-top: 1px solid var(--tavern-line-soft);
+}
+
+.ledgerHeader,
+.ledgerHeader > div,
+.ledgerScopeSummary,
+.factSectionHeader,
+.conflictActions {
+  display: flex;
+  align-items: center;
+}
+
+.ledgerHeader {
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ledgerHeader > div {
+  gap: 8px;
+}
+
+.ledgerHeader h2 {
+  margin: 0;
+  color: var(--tavern-bone);
+  font-family: var(--tavern-font-story);
+  font-size: 20px;
+  font-weight: 400;
+}
+
+.ledgerMark {
+  display: inline-flex;
+  color: var(--tavern-copper);
+}
+
+.ledgerScopeSummary {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ledgerScopeSummary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid var(--tavern-line-soft);
+  border-radius: 3px;
+  color: var(--tavern-parchment);
+  font-size: 11px;
+}
+
+.ledgerScopeSummary [data-scope='world'] {
+  color: var(--tavern-teal);
+}
+
+.ledgerScopeSummary [data-scope='people'] {
+  color: var(--tavern-copper-soft);
+}
+
+.factSections {
+  display: grid;
+  gap: 10px;
+}
+
+.factSection {
+  overflow: hidden;
+  border: 1px solid var(--tavern-line-soft);
+  border-left: 2px solid var(--tavern-copper);
+  border-radius: 4px;
+  background: rgba(18, 14, 10, 0.48);
+}
+
+.factSection[data-scope='world'] {
+  border-left-color: var(--tavern-teal);
+}
+
+.factSectionConflict {
+  border-color: var(--tavern-red);
+  animation: tavernConflictPulse 2.3s ease-in-out infinite;
+}
+
+@keyframes tavernConflictPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(201, 90, 67, 0.18); }
+  50% { box-shadow: 0 0 0 3px rgba(201, 90, 67, 0.23); }
+}
+
+.factSectionHeader {
+  gap: 7px;
+  min-height: 42px;
+  padding: 0 10px;
+  border-bottom: 1px solid var(--tavern-line-soft);
+}
+
+.factSectionHeader h3 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  color: var(--tavern-bone);
+  font-family: var(--tavern-font-story);
+  font-size: 14px;
+  font-weight: 400;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.factSectionHeader > span:last-child {
+  color: var(--tavern-dim);
+  font-size: 11px;
+}
+
+.factScope {
+  display: inline-flex;
+  color: var(--tavern-copper);
+}
+
+.factSection[data-scope='world'] .factScope {
+  color: var(--tavern-teal);
+}
+
+.factSectionBody {
+  padding: 4px 8px 8px;
+}
+
+.factValue {
+  display: block;
+  width: 100%;
+  padding: 2px 0;
+  border: 0;
+  color: var(--tavern-parchment);
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1.65;
+  text-align: left;
+}
+
+.factValue:hover,
+.factValue:focus-visible {
+  color: var(--tavern-copper-soft);
+  outline: 1px dashed var(--tavern-copper);
+  outline-offset: 2px;
+}
+
+.memoryCopy strong {
+  color: var(--tavern-copper-soft);
+  font-family: var(--tavern-font-ui);
+  font-size: 11px;
+  font-weight: 500;
+}
+
+.memoryCopy p {
+  display: none;
+}
+
+.conflictBanner {
+  margin: 8px;
+  padding: 10px;
+  border: 1px solid rgba(201, 90, 67, 0.55);
+  border-radius: 3px;
+  color: var(--tavern-parchment);
+  background: rgba(124, 59, 45, 0.24);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.conflictTitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #f0a48e;
+  font-weight: 600;
+}
+
+.conflictBanner p {
+  margin: 6px 0 0;
+}
+
+.conflictBanner del {
+  color: var(--tavern-dim);
+}
+
+.conflictBanner strong {
+  color: #f0c6b6;
+  font-weight: 500;
+}
+
+.conflictActions {
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 9px;
+}
+
+.keepNewButton,
+.keepOldButton,
+.auditLink,
+.undoLink,
+.toastAction {
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--tavern-line-strong);
+  border-radius: 3px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 11px;
+}
+
+.keepNewButton {
+  border-color: var(--tavern-red);
+  color: var(--tavern-bone);
+  background: rgba(201, 90, 67, 0.26);
+}
+
+.keepOldButton {
+  color: var(--tavern-parchment);
+  background: rgba(18, 14, 10, 0.35);
+}
+
+.keepNewButton:hover,
+.keepOldButton:hover,
+.keepNewButton:focus-visible,
+.keepOldButton:focus-visible {
+  border-color: var(--tavern-copper-soft);
+}
+
+.auditLink,
+.undoLink {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  color: var(--tavern-copper-soft);
+  background: rgba(201, 155, 100, 0.07);
+}
+
+.undoLink {
+  color: var(--tavern-parchment);
+  background: transparent;
+}
+
+.asideSources {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+  padding-top: 17px;
+  border-top: 1px solid var(--tavern-line-soft);
+}
+
+.toast {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 80;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  max-width: min(420px, calc(100vw - 32px));
+  min-height: 46px;
+  padding: 6px 8px 6px 14px;
+  border: 1px solid var(--tavern-line-strong);
+  border-left: 2px solid var(--tavern-copper);
+  border-radius: 3px;
+  color: var(--tavern-bone);
+  background: var(--tavern-panel);
+  box-shadow: var(--tavern-shadow-3);
+}
+
+.toastAction {
+  flex: 0 0 auto;
+  color: var(--tavern-copper-soft);
+  background: transparent;
+}
+
+.subtleButton:focus-visible,
+.secondaryAction:focus-visible,
+.headerAction:focus-visible,
+.startButton:focus-visible,
+.identityButton:focus-visible,
+.characterChoice:focus-visible,
+.asideTools button:focus-visible,
+.personRow:focus-visible,
+.historyOpen:focus-visible,
+.historyDelete:focus-visible,
+.toastAction:focus-visible,
+.auditLink:focus-visible,
+.undoLink:focus-visible {
+  outline: 2px solid var(--tavern-copper);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .factSectionConflict,
+  .characterChoice,
+  .toast,
+  .sceneBanner img {
+    animation: none;
+    transition: none;
+  }
+}
+
+@media (max-width: 860px) {
+  .entrance {
+    padding: 32px 20px 28px;
+  }
+
+  .entranceHero {
+    min-height: 180px;
+  }
+
+  .entranceHero > img:first-child {
+    height: 180px;
+  }
+
+  .entranceHeroPortrait {
+    right: 18px;
+    width: 84px;
+    height: 120px;
+  }
+
+  .entranceHeroCopy {
+    left: 16px;
+    bottom: 16px;
+    max-width: calc(100% - 118px);
+  }
+
+  .entranceHeroCopy strong {
+    font-size: 21px;
+  }
+
+  .identityPanel {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+
+  .journeyLayout {
+    display: block;
+  }
+
+  .journeyAside {
+    display: none;
+  }
+
+  .mobileDetailsAction {
+    display: inline-flex;
+  }
+
+  .sceneBanner {
+    height: 160px;
+  }
+
+  .sceneCopy {
+    left: 16px;
+    bottom: 13px;
+    max-width: calc(100% - 122px);
+  }
+
+  .sceneCopy strong {
+    font-size: 19px;
+  }
+
+  .portraitCard {
+    right: 17px;
+    grid-template-rows: 96px auto;
+    width: 72px;
+    min-height: 120px;
+  }
+
+  .portraitCard img {
+    height: 96px;
+  }
+
+  .portraitCard strong {
+    padding: 5px;
+    font-size: 10px;
+  }
+
+  .drawer {
+    width: 100%;
+    border-top: 1px solid var(--tavern-line);
+    border-left: 0;
+    border-radius: 14px 14px 0 0;
+  }
+
+  .drawerLayer {
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .drawerScrim {
+    position: absolute;
+  }
+
+  .drawer {
+    position: relative;
+    max-height: min(86vh, 760px);
+  }
+
+  .drawerHeader {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+}
+
+@media (max-width: 440px) {
+  .entrance {
+    padding-right: 14px;
+    padding-left: 14px;
+  }
+
+  .entranceHeroCopy p {
+    display: none;
+  }
+
+  .factSectionHeader {
+    min-height: 46px;
+  }
+
+  .toast {
+    right: 16px;
+    bottom: 16px;
+    left: 16px;
+  }
+}
+
+/* The shared conversation owns the composer outside Tavern's story grid. Keep
+   its card on the same width axis as the story column, leaving the people rail
+   clear instead of centering the card across the whole browser. */
+:global(.tavernLegacyRoot) {
+  --tavern-aside-width: 384px;
+}
+
+:global(.tavernLegacyRoot) [data-composer-seat] :has(> [data-composer-card]) {
+  box-sizing: border-box;
+  width: calc(100% - var(--tavern-aside-width));
+  align-items: center;
+}
+
+:global(.tavernLegacyRoot) [data-composer-seat] [data-composer-card] {
+  width: 100%;
+  max-width: 672px;
+}
+
+:global(.tavernLegacyRoot) [data-composer-seat] [class*='trailing'] {
+  margin-left: auto;
+}
+
+:global(.tavernLegacyRoot) [data-composer-seat] [data-slot='conversation.input.model'] {
+  display: none !important;
+}
+
+/* Model choice is a journey setting, not a per-message affordance. The model
+   control is rendered in the settings drawer below. */
+.settingsSection {
+  padding: 8px 0 26px;
+  border-bottom: 1px solid var(--tavern-line);
+}
+
+.settingsHeading {
+  display: grid;
+  gap: 6px;
+}
+
+.settingsHeading h3 {
+  margin: 0;
+  color: var(--tavern-bone);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 22px;
+  font-weight: 400;
+}
+
+.settingsDescription {
+  max-width: 440px;
+  margin: 13px 0 20px;
+  color: var(--tavern-parchment);
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.settingsModel {
+  position: relative;
+  display: flex;
+  justify-content: flex-end;
+  min-height: 42px;
+  padding-top: 17px;
+  border-top: 1px solid var(--tavern-line-soft);
+}
+
+.settingsModel button[class*='trigger'] {
+  box-sizing: border-box;
+  width: min(100%, 290px);
+  max-width: 100%;
+  min-height: 40px;
+  height: auto;
+  padding: 8px 10px 8px 12px;
+  border: 1px solid var(--tavern-line);
+  border-radius: 4px;
+  color: var(--tavern-bone);
+  background: rgba(53, 33, 23, 0.72);
+  text-align: left;
+}
+
+.settingsModel [class*='root'] {
+  width: min(100%, 290px);
+}
+
+.settingsModel button[class*='trigger']:hover:not(:disabled),
+.settingsModel button[class*='trigger']:focus-visible {
+  border-color: var(--tavern-gold);
+  color: var(--tavern-bone);
+  background: rgba(196, 138, 67, 0.12);
+}
+
+.settingsModel [class*='menu'] {
+  border-color: var(--tavern-line);
+  border-radius: 4px;
+  background: var(--tavern-panel-raised);
+  color: var(--tavern-bone);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.38);
+}
+
+.settingsModel [class*='option']:hover:not(:disabled),
+.settingsModel [class*='cell']:hover {
+  background: rgba(196, 138, 67, 0.12);
+}
+
+.history {
+  box-sizing: border-box;
+  width: min(1180px, 100%);
+  min-height: 100%;
+  margin: 0 auto;
+  padding: 54px 30px 72px;
+}
+
+.historyHeading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: 34px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--tavern-line);
+}
+
+.historyHeading h1 {
+  margin: 8px 0 10px;
+  color: var(--tavern-bone);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 400;
+}
+
+.historyHeading p {
+  max-width: 560px;
+  margin: 0;
+  color: var(--tavern-parchment);
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.historyCount {
+  flex: 0 0 auto;
+  color: var(--tavern-gold-bright);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 30px;
+}
+
+.historyNotice {
+  margin: -12px 0 22px;
+  color: var(--tavern-gold-bright);
+  font-size: 12px;
+}
+
+.historyGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.historyCard {
+  position: relative;
+  min-width: 0;
+  min-height: 238px;
+  border: 1px solid var(--tavern-line);
+  border-radius: 4px;
+  background: var(--tavern-panel);
+  transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.historyOpen {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  min-width: 0;
+  width: 100%;
+  min-height: 238px;
+  padding: 20px;
+  padding-right: 54px;
+  border: 0;
+  border-radius: 4px;
+  color: var(--tavern-bone);
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+}
+
+.historyCard:hover,
+.historyCard:has(.historyOpen:focus-visible) {
+  border-color: var(--tavern-gold);
+  background: var(--tavern-panel-raised);
+}
+
+.historyCard:hover {
+  transform: translateY(-2px);
+}
+
+.historyOpen:focus-visible {
+  outline: 2px solid var(--tavern-gold-bright);
+  outline-offset: 3px;
+}
+
+.historyDelete {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  color: var(--tavern-dim);
+  background: transparent;
+  cursor: pointer;
+}
+
+.historyDelete:hover:not(:disabled),
+.historyDelete:focus-visible {
+  border-color: var(--tavern-red, #b55a4a);
+  color: var(--tavern-bone);
+  background: rgba(181, 90, 74, 0.16);
+}
+
+.historyDelete:focus-visible {
+  outline: 2px solid var(--tavern-gold-bright);
+  outline-offset: 2px;
+}
+
+.historyDelete:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.historyIdentity {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-width: 0;
+}
+
+.historyAvatar {
+  display: grid;
+  flex: 0 0 42px;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 1px solid var(--tavern-gold);
+  border-radius: 50%;
+  color: var(--tavern-gold-bright);
+  background: rgba(196, 138, 67, 0.12);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 17px;
+}
+
+.historyIdentityCopy {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+  flex: 1 1 auto;
+}
+
+.historyIdentityCopy strong,
+.historyIdentityCopy small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.historyIdentityCopy strong {
+  color: var(--tavern-bone);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 17px;
+  font-weight: 400;
+}
+
+.historyIdentityCopy small {
+  color: var(--tavern-dim);
+  font-size: 11px;
+}
+
+.historyLatest {
+  min-width: 0;
+  min-height: 87px;
+  padding-top: 15px;
+  border-top: 1px solid var(--tavern-line-soft);
+}
+
+.historyLatest > span,
+.historyFooter > span {
+  color: var(--tavern-dim);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.historyLatest p {
+  display: -webkit-box;
+  overflow: hidden;
+  margin: 8px 0 0;
+  color: var(--tavern-parchment);
+  font-size: 13px;
+  line-height: 1.65;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+.historyFooter {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding-top: 13px;
+  border-top: 1px solid var(--tavern-line-soft);
+}
+
+.historyFooter time {
+  color: var(--tavern-bone);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.historyEmpty {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 80px 20px;
+  border-top: 1px solid var(--tavern-line-soft);
+  color: var(--tavern-parchment);
+  text-align: center;
+}
+
+.historyEmpty p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.historySkeleton {
+  display: grid;
+  grid-template-columns: 42px 1fr 54px;
+  align-items: center;
+  gap: 12px;
+  min-height: 238px;
+  padding: 20px;
+  border: 1px solid var(--tavern-line-soft);
+  border-radius: 4px;
+}
+
+.historySkeleton > span:nth-child(2) {
+  display: grid;
+  gap: 8px;
+}
+
+.skeletonBlock {
+  width: 54px;
+  height: 54px;
+  border-radius: 3px;
+  background: var(--tavern-line-soft);
+  opacity: 0.7;
+}
+
+@media (max-width: 720px) {
+  .history {
+    padding: 34px 16px 48px;
+  }
+
+  .historyHeading {
+    align-items: flex-start;
+    margin-bottom: 24px;
+  }
+
+  .historyHeading h1 {
+    font-size: 32px;
+  }
+
+  .historyCount {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 960px) {
+  :global(.tavernLegacyRoot) {
+    --tavern-aside-width: 384px;
+  }
+}
+
+@media (max-width: 860px) {
+  :global(.tavernLegacyRoot) {
+    --tavern-aside-width: 0px;
+  }
+}
+
+@media (max-width: 860px) {
+  .root button,
+  .root input,
+  .root select,
+  .root textarea {
+    min-height: 44px;
+  }
+
+  .root button {
+    min-width: 44px;
+  }
+}
+
+.asideWorldCard {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+}
+
+.asideWorldContent {
+  padding: 0 12px 4px;
+  color: var(--text-2);
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.asideWorldContent p {
+  margin: 6px 0;
+}
+
+.asideWorldContent strong {
+  display: block;
+  color: var(--text-1);
+  margin-bottom: 2px;
+}
+
+.asideWorldEdit {
+  min-height: 44px;
+  margin: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--teal);
+  cursor: pointer;
+}
+
+/* ---------------------------------------------------------------------------
+   Surface-mode chrome. The Tavern entrance owns the first screen: the shared
+   conversation composer (resident seat) only returns with the story stage.
+   TavernView mirrors its mode onto <html data-tavern-mode="...">. */
+:global(html[data-tavern-mode='home']) [data-composer-seat],
+:global(html[data-tavern-mode='entrance']) [data-composer-seat] {
+  display: none;
+}
+
+/* Direct delete affordances for library assets on the entrance. Two-step
+   inline confirm (data-armed) replaces window.confirm. */
+.characterChoiceWrap {
+  position: relative;
+  min-width: 0;
+}
+
+.choiceDelete,
+.worldItemDelete {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 8px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  color: var(--tavern-parchment);
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  opacity: 0.72;
+  transition: color 140ms ease, border-color 140ms ease, background 140ms ease, opacity 140ms ease;
+}
+
+.choiceDelete {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1;
+}
+
+.characterChoiceWrap:hover .choiceDelete,
+.characterChoiceWrap:focus-within .choiceDelete,
+.worldItemDelete {
+  opacity: 1;
+}
+
+.choiceDelete:hover,
+.choiceDelete:focus-visible,
+.worldItemDelete:hover,
+.worldItemDelete:focus-visible {
+  border-color: var(--tavern-gold);
+  color: var(--tavern-bone);
+  background: rgba(196, 138, 67, 0.12);
+}
+
+.choiceDelete[data-armed],
+.worldItemDelete[data-armed],
+.dangerButton[data-armed] {
+  border-color: rgba(201, 90, 67, 0.7);
+  color: #e2a18b;
+  background: rgba(105, 41, 31, 0.3);
+}
+
+.worldItemEnd {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Destructive journey action in the settings drawer. */
+.dangerButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(201, 90, 67, 0.55);
+  border-radius: 4px;
+  color: #e2a18b;
+  background: rgba(105, 41, 31, 0.22);
+  cursor: pointer;
+  font-size: 13px;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+
+.dangerButton:hover:not(:disabled),
+.dangerButton:focus-visible {
+  border-color: rgba(201, 90, 67, 0.85);
+  background: rgba(105, 41, 31, 0.34);
+}
+
+.dangerButton:disabled {
+  opacity: 0.55;
+  cursor: default;
 }

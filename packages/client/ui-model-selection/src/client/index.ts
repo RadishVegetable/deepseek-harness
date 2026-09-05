@@ -1,19 +1,20 @@
 /**
- * Model selection plugin, browser half — TWO entries over ONE per-session
+ * Model selection plugin, browser half — THREE entry surfaces over ONE per-session
  * directory owned by ModelDirectoryResolver (`ctx.modelDirectories`). The /model popupSelect
- * contribution and the composer's named `conversation.input.model` seat both
- * load the session's provider-grouped advisory directory (`session.models`)
- * and submit through `session.selectModel` via the same directory instance,
- * so the host-reported current selection is the single fact both surfaces echo
- * — a switch made in either entry is what the other shows next. Failures
- * ride each entry's own retry surface (popup shell error/retry; seat menu
- * inline error) without forking the state. Addressed subagent sessions expose
- * neither entry because those Agent-bound RPCs would activate persisted
+ * contribution, the composer's named `conversation.input.model` seat, and
+ * Tavern's `tavern.settings.model` seat all load the session's provider-grouped
+ * advisory directory (`session.models`) and submit through `session.selectModel`
+ * via the same directory instance, so the host-reported current selection is
+ * the single fact every surface echoes — a switch made in any entry is what the
+ * others show next. Failures ride each entry's own retry surface (popup
+ * shell error/retry; seat menu inline error) without forking the state.
+ * Addressed subagent sessions expose none of these entries because those
+ * Agent-bound RPCs would activate persisted
  * history outside the direct-parent continuation path.
  */
 // Type-only: the carrier types, the forwarded Host-event face and the ctx.remote merge.
-import type { ModelSelection, SessionModels } from '@deepseek-ai/dsh-api-remotes/client'
-import type { ClientContext } from '@deepseek-ai/dsh-client-runtime/client'
+import type { ModelSelection, SessionId, SessionModels } from '@deepseek-ai/dsh-api-remotes/client'
+import type { ClientContext, SessionRuntime } from '@deepseek-ai/dsh-client-runtime/client'
 import type { CommandUiContract, SelectOption } from '@deepseek-ai/dsh-client-ui-commands/client'
 // Type-only: pulls the ui-conversation SlotMap merge (the input.model seat).
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
@@ -37,6 +38,21 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     /** The model selection surfaces' copy (/model popup + composer seat). */
     model: ModelKey
   }
+
+  interface SlotMap {
+    /** Model control projected into Tavern's journey settings drawer. */
+    'tavern.settings.model': {
+      kind: 'single'
+      scope: 'session'
+      owner: TavernSettingsModelOwnerProps
+    }
+  }
+}
+
+/** Owner share for the model control in Tavern's settings drawer. */
+export interface TavernSettingsModelOwnerProps {
+  /** Whether the settings surface should disable model changes. */
+  locked: boolean
 }
 
 /** One selectable row's id: an opaque row key (resolved by lookup, never parsed). */
@@ -95,6 +111,32 @@ function selectionOf(state: ModelDirectoryState, id: string): ModelSelection | u
 
 /** Dictionary namespace owned by this plugin. */
 const NS = 'model'
+
+/**
+ * Build the shared model-control face for one session.
+ * @param resolver - the per-session model directory owner.
+ * @param sessions - session runtime used to reject addressed subagent sessions.
+ * @param sessionId - the session whose route the control edits.
+ * @returns the injected props consumed by {@link ModelSelect}.
+ */
+function modelSelectProps(
+  resolver: ModelDirectoryResolver,
+  sessions: Pick<SessionRuntime, 'subagentAddress'>,
+  sessionId: SessionId,
+): ModelSelectInjected {
+  const directory = resolver.directoryFor(sessionId)
+  const available = sessions.subagentAddress(sessionId) === undefined
+  return {
+    available,
+    directory: directory.store,
+    load: () => {
+      if (available) directory.load().catch(() => { /* surfaced on the store */ })
+    },
+    select: (selection: ModelSelection) => available
+      ? directory.select(selection).then(() => true, () => false)
+      : Promise.resolve(false),
+  }
+}
 
 /** Required services: the contribution registry, the seat's slot registry, locale, and the service's own faces. */
 export const inject = ['commandUi', 'connection', 'locale', 'sessions', 'slots', 'remote']
@@ -157,20 +199,14 @@ export function apply(ctx: ClientContext): void {
     scope.slots.inject('conversation.input.model', () => scope.slots.register({
       name: 'conversation.input.model',
       locale: NS,
-      inject: (sessionId): ModelSelectInjected => {
-        const directory = models.directoryFor(sessionId)
-        const available = sessions.subagentAddress(sessionId) === undefined
-        return {
-          available,
-          directory: directory.store,
-          load: () => {
-            if (available) directory.load().catch(() => { /* surfaced on the store */ })
-          },
-          select: (selection: ModelSelection) => available
-            ? directory.select(selection).then(() => true, () => false)
-            : Promise.resolve(false),
-        }
-      },
+      inject: (sessionId): ModelSelectInjected => modelSelectProps(models, sessions, sessionId),
+    }, ModelSelect))
+    // Entry 3: Tavern's journey settings projects the same control without
+    // exposing model selection in the roleplay composer.
+    scope.slots.inject('tavern.settings.model', () => scope.slots.register({
+      name: 'tavern.settings.model',
+      locale: NS,
+      inject: (sessionId): ModelSelectInjected => modelSelectProps(models, sessions, sessionId),
     }, ModelSelect))
   })
 }

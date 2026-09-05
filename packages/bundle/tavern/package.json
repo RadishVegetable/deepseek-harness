@@ -19,6 +19,7 @@
       "default": "./lib/index.js"
     },
     "./cordis.patch.yml": "./cordis.patch.yml",
+    "./opencode.cordis.patch.yml": "./opencode.cordis.patch.yml",
     "./invariant": {
       "types": "./lib/types/invariant.d.ts",
       "default": "./lib/invariant.js"
@@ -30,6 +31,7 @@
     "lib/index.js",
     "lib/invariant.js",
     "cordis.patch.yml",
+    "opencode.cordis.patch.yml",
     "lib/types/**/*.d.ts"
   ],
   "license": "MIT",
@@ -39,7 +41,7 @@
     }
   },
   "dependencies": {
-    "@deepseek-ai/dsh-client-ui-tavern": "workspace:^",
+    "@deepseek-ai/dsh-client-ui-tavern-app": "workspace:^",
     "@deepseek-ai/dsh-tavern-host": "workspace:^"
   },
   "peerDependencies": {

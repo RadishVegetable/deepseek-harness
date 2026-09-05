@@ -1,0 +1,28 @@
+# OpenCode overlay appended by the source-checkout Tavern launcher.
+# Direct `dsh web --patch cordis.patch.yml` keeps the base profile behavior.
+- id: settings
+  config:
+    path: !!js process.env.DSH_TAVERN_SETTINGS_PATH ?? dshHomePath('settings.yaml')
+
+# The launcher resolves this route from the local OpenCode config before
+# Cordis loads the patch. The API key is referenced by name and never
+# materialized into this YAML or the settings file.
+- id: llm-pi-ai
+  config:
+    providers:
+      opencode-local:
+        displayName: !!js process.env.DSH_TAVERN_OPENCODE_DISPLAY_NAME
+        api: !!js process.env.DSH_TAVERN_OPENCODE_API
+        baseURL: !!js process.env.DSH_TAVERN_OPENCODE_BASE_URL
+        apiKeyEnv: DSH_TAVERN_OPENCODE_API_KEY
+        headers: !!js JSON.parse(process.env.DSH_TAVERN_OPENCODE_HEADERS ?? '{}')
+        models:
+          - id: !!js process.env.DSH_TAVERN_OPENCODE_MODEL
+            name: !!js process.env.DSH_TAVERN_OPENCODE_MODEL_NAME
+            contextWindow: !!js Number(process.env.DSH_TAVERN_OPENCODE_CONTEXT_WINDOW)
+            maxTokens: !!js Number(process.env.DSH_TAVERN_OPENCODE_MAX_TOKENS)
+
+- id: agent-default-model
+  config:
+    provider: opencode-local
+    model: !!js process.env.DSH_TAVERN_OPENCODE_MODEL
